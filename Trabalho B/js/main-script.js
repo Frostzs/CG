@@ -5,6 +5,9 @@ import * as THREE from "three";
 /* GLOBAL VARIABLES */
 //////////////////////
 
+// colors
+const red = 0xFF0000, blue = 0x0000FF, yellow = 0xFFFF00, white = 0xFFFFFF, black = 0x000000, gray = 0x808080, darkGray = 0x404040
+
 let camera, scene, renderer;
 
 let robot;
@@ -42,17 +45,35 @@ function createCamera() {
 ////////////////////////
 /* CREATE OBJECT3D(S) */
 ////////////////////////
+function createCube(width, height, depth, color) {
+    const geometry = new THREE.Box2.Geometry(width, height, depth);
+    const material = new THREE.MeshStandardMaterial({ color });
+    return new ThreeMFLoader.Mesh(geometry, material);
+}
+
+function createCylinder(radiusTop, radiusBottom, height, radialSegments, color) {
+    const geometry = new THREE.CylinderGeometry(radiusTop, radiusBotoom, height, radialSegments);
+    const material = new THREE.MeshStandardMaterial({ color });
+    return new THREE.Mesh(geometry, material);
+}
+
+function createBall(radius, height, radialSegments, color) {
+    const geometry = new THREE.SphereGeometry(radius, height, radialSegments);
+    const  material = new THREE.MeshStandardMaterial({ color });
+    return new THREE.Mesh(geometry, material);
+}
+
 function createRobot(x, y, z) {
     robot = new THREE.Object3D();
 
     const material = new THREE.MeshBasicMaterial({ color : 0x00ff00 });
 
-    addLeg(robot, -5, 0, 0, material);
-    addLeg(robot, 5, 0, 0, material);
-    addChest(robot, 0, 10, 0, material);
-    addHead(robot, 0, 20, 0, material);
-    addArm(robot, -10, 12.5, 0, material);
-    addArm(robot, 10, 12.5, 0, material);
+    addLeg(robot, x, y, z, material);
+    addLeg(robot, x, y, z, material);
+    addChest(robot, x, y, z, material);
+    addHead(robot, x, y, z, material);
+    addArm(robot, x, y, z, material);
+    addArm(robot, x, y, z, material);
 
 
     scene.add(robot);
@@ -62,23 +83,149 @@ function createRobot(x, y, z) {
     robot.position.z = z;
 }
 
-function addLeg(obj, x, y, z, material) {
-    // Create upperLeg
-    const upperLeg = new THREE.Object3D();
-    const upperLegMesh = new THREE.Mesh(new THREE.BoxGeometry(3, 5, 3), material);
-    upperLegMesh.position.set(x, y, z);
-    upperLeg.add(upperLegMesh);
-    // Create lowerLeg
-    const lowerLeg = new THREE.Object3D();
-    const lowerLegMesh = new THREE.Mesh(new THREE.BoxGeometry(3, 5, 3), material);
-    lowerLegMesh.position.set(x, y - 5, z);
-    lowerLeg.add(lowerLegMesh);
-    // Create foot
-    const foot = new THREE.Object3D();
-    const footMesh = new THREE.Mesh(new THREE.BoxGeometry(5, 1, 5), material);
-    footMesh.position.set(x, y - 10, z);
-    foot.add(footMesh);
+function createHead() {
+    const head = new THREE.Object3D();
+
+    const helmet = createBall( r, h, rS, red);
+    head.add(helmet);
+
+    const earLeft = createCylinder(rT, rB, h, rS, blue);
+    earLeft.position.set(x, y, z);
+    head.add(earLeft);
+
+    const earRight = createCylinder(rT, rB, h, rS, blue);
+    earRight.position.set(x, y, z);
+    head.add(earRight);
+
+    const eyeLeft = createBall(r, h, rS, yellow);
+    eyeLeft.position.set(x, y, z);
+    head.add(eyeLeft);
+
+    const eyeRight = createBall(r, h, rS, yellow);
+    eyeRight.position.set(x, y, z);
+    head.add(eyeRight);
+
+    const mouth = createCube(w, h, d, gray);
+    mouth.position.set(x, y, z);
+    head.add(mouth);
+
+}
+
+function addHead(obj, x, y, z, material) {
     
+    obj.add(head);
+
+}
+
+function createChest() {
+    const chest = new THREE.Object3D();
+
+    const window = createCube(w, h, d, /* transparente */);
+    window.position.set(x, y, z);
+    chest.add(window);
+    
+    const windowdivision = createCube(w, h, d, red);
+    windowdivision.position.set(x, y, z);
+    chest.add(windowdivision);
+
+    const bodychest = createCube(w, h, d, red);
+    bodychest.position.set(x, y, z);
+    chest.add(bodychest);
+
+    const downbodychest = createCube(w, h, d, gray);
+    downbodychest.position.set(x, y, z);
+    chest.add(downbodychest);
+
+}
+
+function addChest(obj, x, y, z, material) {
+    
+    obj.add(chest);
+}
+
+function createTorso() {
+    const torso = new THREE.Object3D();
+
+    const bodytorso = createCube(w, h, d, red);
+    bodytorso.position.set(x, y, z);
+    torso.add(bodytorso);
+
+    const grille = createCube(w, h, d, white);
+    grille.position.set(x, y, z);
+    torso.add(grille);
+
+}
+
+function addTorso(obj, x, y, z, material) {
+
+}
+
+function createTyre() {
+
+}
+
+function addTyre(obj, x, y, z, material) {
+
+}
+
+function createWaist() {
+    const waist = new THREE.Object3D();
+
+    const bodywaist = createCube(w, h, d, white);
+    bodywaist.position.set(x, y, z);
+    waist.add(bodywaist);
+
+    // Tyres
+
+}
+
+function addWaist(obj, x, y, z, material) {
+
+    // Add waist to robot
+    obj.add(waist);
+}
+
+function createArm() {
+    const arm = new THREE.Object3D();
+
+    const upperArm = createCube(w, h, d, red);
+    upperArm.position.set(x, y, z);
+    arm.add(upperArm);
+
+    const forearm = createCube(w, h, d, red);
+    forearm.position.set(x, y, z);
+    arm.add(forearm);
+
+    // add hand if necessary
+
+}
+
+function addArm(obj, x, y, z, material) {
+    // Add forearm to upper arm
+    upperArm.add(foreArm);
+
+    // Add the arm to the robot
+    obj.add(upperArm);
+}
+
+function createLeg() {
+    const leg = new THREE.Object3D();
+
+    const upperLeg = createCube(w, h, d, red);
+    upperLeg.position.set(x, y, z);
+    leg.add(upperLeg);
+
+    const lowerLeg = createCube(w, h, d, red);
+    lowerLeg.position.set(x, y, z);
+    leg.add(lowerLeg);
+    
+    // add gray thing in the lateral part of the leg
+
+    // Tyres
+
+}
+
+function addLeg(obj, x, y, z, material) {
     // Add lowerLeg to upperLeg
     upperLeg.add(lowerLeg);
     
@@ -89,71 +236,17 @@ function addLeg(obj, x, y, z, material) {
     obj.add(upperLeg);
 }
 
-function addWaist(obj, x, y, z, material) {
-    // Create waist
-    const waist = new THREE.Object3D();
-    const waistMesh = new THREE.Mesh(new THREE.BoxGeometry(10, 5, 5), material);
-    waistMesh.position.set(x, y, z);
-    waist.add(waistMesh);
-    // Add waist to robot
-    obj.add(waist);
+function createFoot() {
+    const foot = new THREE.Object3D();
+
+    const bodyfoot = createCube(w, h, d, red);
+    bodyfoot.position.set(x, y, z);
+    foot.add(bodyfoot);
+
 }
 
-function addChest(obj, x, y, z, material) {
-    const geometry = new THREE.BoxGeometry(10, 10, 5);
-    const chest = new THREE.Mesh(geometry, material);
-    chest.position.set(x, y, z);
-    obj.add(chest);
-}
+function addFoot(obj, x, y, z, material) {
 
-function addHead(obj, x, y, z, material) {
-    // Create head
-    const head = new THREE.Object3D();
-    const headMesh = new THREE.Mesh(new THREE.SphereGeometry(5, 10, 10), material);
-    headMesh.position.set(x, y, z);
-    head.add(headMesh);
-    // Create eyes
-    const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
-    const leftEye = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), eyeMaterial);
-    leftEye.position.set(x - 1.5, y + 0.7, z + 5.5);
-    head.add(leftEye);
-    const rightEye = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), eyeMaterial);
-    rightEye.position.set(x + 1.5, y + 0.7, z + 5.5);
-    head.add(rightEye);
-    // Create mouth
-    const mouthMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-    const mouth = new THREE.Mesh(new THREE.BoxGeometry(3, 1, 1), mouthMaterial);
-    mouth.position.set(x, y - 3.5, z + 5.5);
-    
-
-
-    // Add mouth to head
-    head.add(mouth);
-    // Add head to robot
-    obj.add(head);
-
-
-    obj.add(head);
-}
-
-function addArm(obj, x, y, z, material) {
-    // Create upper arm
-    const upperArm = new THREE.Object3D();
-    const upperArmMesh = new THREE.Mesh(new THREE.BoxGeometry(4, 5, 4), material);
-    upperArmMesh.position.set(x, y, z);
-    upperArm.add(upperArmMesh);
-
-    // Create forearm
-    const forearm = new THREE.Object3D();
-    const forearmMesh = new THREE.Mesh(new THREE.BoxGeometry(4, 5, 4), material);
-    forearmMesh.position.set(x, y - 5 , z);
-    forearm.add(forearmMesh);
-
-    // Add forearm to upper arm
-    upperArm.add(forearm);
-
-    // Add the arm to the robot
-    obj.add(upperArm);
 }
 
 //////////////////////
