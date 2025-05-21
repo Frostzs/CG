@@ -22,10 +22,10 @@ function createScene() {
     scene.add(new THREE.AxesHelper(10));
 
     // this puts the background color to white
-    // scene.background = new THREE.Color(0xeeeeee);
+    scene.background = new THREE.Color(0xeeeeee);
 
     createRobot(0, 0, 0);
-    createTrailer(0,-12,-20); 
+    createTrailer(0,-12,-25); 
 
 
 }
@@ -194,19 +194,19 @@ function addArm(obj, x, y, z, material) {
 function createTrailer(x, y, z) {
     const trailer = new THREE.Object3D();
 
-    const boxMaterial = new THREE.MeshBasicMaterial({ color: 0x888888 });
-    const wheelMaterial = new THREE.MeshBasicMaterial({ color: 0x222222 });
+    const boxMaterial = new THREE.MeshBasicMaterial({ color: 0x444444 });
+    const wheelMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
     const hitchMaterial = new THREE.MeshBasicMaterial({ color: 0xaaaaaa });
 
     // --- Contentor (caixa principal) ---
-    const containerWidth = 30;
-    const containerHeight = 15;
+    const containerWidth = 40;
+    const containerHeight = 25;
     const containerDepth = 12;
     const container = new THREE.Mesh(
         new THREE.BoxGeometry(containerWidth, containerHeight, containerDepth),
         boxMaterial
     );
-    container.position.set(0, containerHeight / 2 + 3, 0); // elevate to rest on wheels
+    container.position.set(0, containerHeight / 2 + 5, 0); // elevate to rest on wheels
     trailer.add(container);
 
     // --- Rodas ---
@@ -214,16 +214,16 @@ function createTrailer(x, y, z) {
     const wheelThickness = 2;
     const wheelGeometry = new THREE.CylinderGeometry(wheelRadius, wheelRadius, wheelThickness, 12);
 
-    // Four wheels: front/back x left/right
+    // Four wheels:
     const wheelOffsetX = containerWidth / 2 - 5;
     const wheelOffsetY = wheelRadius;
     const wheelOffsetZ = containerDepth / 2 + 1;
 
     const wheelPositions = [
-        [-wheelOffsetX, wheelOffsetY, -wheelOffsetZ], // front-left
-        [-wheelOffsetX, wheelOffsetY, wheelOffsetZ],  // front-right
+        [wheelOffsetX-4, wheelOffsetY, -wheelOffsetZ], // front-left
+        [wheelOffsetX, wheelOffsetY, wheelOffsetZ],  // front-right
         [wheelOffsetX, wheelOffsetY, -wheelOffsetZ],  // rear-left
-        [wheelOffsetX, wheelOffsetY, wheelOffsetZ],   // rear-right
+        [wheelOffsetX-4, wheelOffsetY, wheelOffsetZ],   // rear-right
     ];
 
     wheelPositions.forEach(pos => {
