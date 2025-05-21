@@ -9,6 +9,10 @@ let camera, scene, renderer;
 
 let robot;
 
+let cameras = {};
+let activeCamera;
+
+
 /////////////////////
 /* CREATE SCENE(S) */
 /////////////////////
@@ -21,6 +25,8 @@ function createScene() {
     // scene.background = new THREE.Color(0xeeeeee);
 
     createRobot(0, 0, 0);
+    createTrailer(0,-12,-20); 
+
 
 }
 
@@ -28,12 +34,41 @@ function createScene() {
 /* CREATE CAMERA(S) */
 //////////////////////
 function createCamera() {
-    camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 1000);
-    camera.position.x = 0;
-    camera.position.y = 0;
-    camera.position.z = 50;
-    camera.lookAt(scene.position);
+    const aspect = window.innerWidth / window.innerHeight;
+
+    // Ortogonal Frontal
+    const orthoFront = new THREE.OrthographicCamera(-75, 75, 75, -75, 1, 1000);
+
+    orthoFront.position.set(0, 0, 400);
+    orthoFront.lookAt(scene.position);
+
+    // Ortogonal Lateral (direita)
+    const orthoSide = new THREE.OrthographicCamera(-75, 75, 75, -75, 1, 1000);
+    orthoSide.position.set(50, 0, 0);
+    orthoSide.lookAt(scene.position);
+
+    // Ortogonal Topo
+    const orthoTop = new THREE.OrthographicCamera(-75, 75, 75, -75, 1, 1000);
+    orthoTop.position.set(0, 50, 0);
+    orthoTop.lookAt(scene.position);
+
+    // Perspectiva
+    const perspective = new THREE.PerspectiveCamera(70, aspect, 1, 1000);
+    perspective.position.set(60, 60, 60);
+    perspective.lookAt(scene.position);
+
+    // Armazena no dicionário
+    cameras = {
+        front: orthoFront,
+        side: orthoSide,
+        top: orthoTop,
+        perspective: perspective,
+    };
+
+    // Define a câmera ativa inicialmente
+    activeCamera = cameras.perspective;
 }
+
 
 /////////////////////
 /* CREATE LIGHT(S) */
@@ -156,6 +191,66 @@ function addArm(obj, x, y, z, material) {
     obj.add(upperArm);
 }
 
+function createTrailer(x, y, z) {
+    const trailer = new THREE.Object3D();
+
+    const boxMaterial = new THREE.MeshBasicMaterial({ color: 0x888888 });
+    const wheelMaterial = new THREE.MeshBasicMaterial({ color: 0x222222 });
+    const hitchMaterial = new THREE.MeshBasicMaterial({ color: 0xaaaaaa });
+
+    // --- Contentor (caixa principal) ---
+    const containerWidth = 30;
+    const containerHeight = 15;
+    const containerDepth = 12;
+    const container = new THREE.Mesh(
+        new THREE.BoxGeometry(containerWidth, containerHeight, containerDepth),
+        boxMaterial
+    );
+    container.position.set(0, containerHeight / 2 + 3, 0); // elevate to rest on wheels
+    trailer.add(container);
+
+    // --- Rodas ---
+    const wheelRadius = 3;
+    const wheelThickness = 2;
+    const wheelGeometry = new THREE.CylinderGeometry(wheelRadius, wheelRadius, wheelThickness, 12);
+
+    // Four wheels: front/back x left/right
+    const wheelOffsetX = containerWidth / 2 - 5;
+    const wheelOffsetY = wheelRadius;
+    const wheelOffsetZ = containerDepth / 2 + 1;
+
+    const wheelPositions = [
+        [-wheelOffsetX, wheelOffsetY, -wheelOffsetZ], // front-left
+        [-wheelOffsetX, wheelOffsetY, wheelOffsetZ],  // front-right
+        [wheelOffsetX, wheelOffsetY, -wheelOffsetZ],  // rear-left
+        [wheelOffsetX, wheelOffsetY, wheelOffsetZ],   // rear-right
+    ];
+
+    wheelPositions.forEach(pos => {
+        const wheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
+        wheel.rotation.z = Math.PI / 2; // rotate to lie flat
+        wheel.position.set(...pos);
+        trailer.add(wheel);
+    });
+
+    // --- Peça de ligação (haste de engate) ---
+    const hitchLength = 5;
+    const hitch = new THREE.Mesh(
+        new THREE.BoxGeometry(hitchLength, 2, 2),
+        hitchMaterial
+    );
+    hitch.position.set(-containerWidth / 2 - hitchLength / 2, wheelOffsetY + 1, 0);
+    trailer.add(hitch);
+
+    // --- Posição final do reboque ---
+    trailer.position.set(x, y, z);
+    trailer.rotation.y = Math.PI / 2;
+
+    scene.add(trailer);
+}
+
+
+
 //////////////////////
 /* CHECK COLLISIONS */
 //////////////////////
@@ -175,8 +270,9 @@ function update() {}
 /* DISPLAY */
 /////////////
 function render() {
-    renderer.render(scene, camera);
+    renderer.render(scene, activeCamera);
 }
+
 
 ////////////////////////////////
 /* INITIALIZE ANIMATION CYCLE */
@@ -219,7 +315,23 @@ function onResize() {
 ///////////////////////
 /* KEY DOWN CALLBACK */
 ///////////////////////
-function onKeyDown(e) {}
+function onKeyDown(e) {
+    switch (e.key) {
+        case '1':
+            activeCamera = cameras.front;
+            break;
+        case '2':
+            activeCamera = cameras.side;
+            break;
+        case '3':
+            activeCamera = cameras.top;
+            break;
+        case '4':
+            activeCamera = cameras.perspective;
+            break;
+    }
+}
+
 
 ///////////////////////
 /* KEY UP CALLBACK */
