@@ -17,7 +17,7 @@ var clock, delta;
 
 let camera, scene, renderer;
 
-let robot;
+let robot, trailer;
 
 let cameras = {};
 let activeCamera;
@@ -34,7 +34,7 @@ function createScene() {
     // this puts the background color to white
     scene.background = new THREE.Color(0xeeeeee);
 
-    createRobot(0, 0, 0);
+    //createRobot(0, 0, 0);
     createTrailer(0,-12,-25); 
 
 
@@ -292,7 +292,7 @@ function addFoot(obj, x, y, z, material) {
 }
 
 function createTrailer(x, y, z) {
-    const trailer = new THREE.Object3D();
+    trailer = new THREE.Object3D();
 
     const boxMaterial = new THREE.MeshBasicMaterial({ color: 0x444444 });
     const wheelMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
@@ -320,15 +320,16 @@ function createTrailer(x, y, z) {
     const wheelOffsetZ = containerDepth / 2 + 1;
 
     const wheelPositions = [
-        [wheelOffsetX-4, wheelOffsetY, -wheelOffsetZ], // front-left
+        [wheelOffsetX-7, wheelOffsetY, -wheelOffsetZ], // front-left
         [wheelOffsetX, wheelOffsetY, wheelOffsetZ],  // front-right
         [wheelOffsetX, wheelOffsetY, -wheelOffsetZ],  // rear-left
-        [wheelOffsetX-4, wheelOffsetY, wheelOffsetZ],   // rear-right
+        [wheelOffsetX-7, wheelOffsetY, wheelOffsetZ],   // rear-right
     ];
 
     wheelPositions.forEach(pos => {
         const wheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
         wheel.rotation.z = Math.PI / 2; // rotate to lie flat
+        wheel.rotation.y = Math.PI / 2; // rotate to lie flat
         wheel.position.set(...pos);
         trailer.add(wheel);
     });
@@ -349,8 +350,28 @@ function createTrailer(x, y, z) {
     scene.add(trailer);
 }
 
+function robotBuilt() {
+    //check if the robot is built
+    
+    return false;
+}
 
+function moveTrailer() {
+    let speed = delta * 20;
+    if (leftArrow == false && rightArrow == true) {
+        trailer.position.x += speed;
+    }
+    else if (leftArrow == true && rightArrow == false) {
+        trailer.position.x -= speed;
+    }
+    if (upArrow == true && downArrow == false) {
+        trailer.position.z += speed;
+    }
+    else if (upArrow == false && downArrow == true) {
+        trailer.position.z -= speed;
+    }
 
+}
 //////////////////////
 /* CHECK COLLISIONS */
 //////////////////////
@@ -364,7 +385,20 @@ function handleCollisions() {}
 ////////////
 /* UPDATE */
 ////////////
-function update() {}
+function update() {
+
+
+    delta = clock.getDelta();
+
+    if (robotBuilt() && checkCollisions()) {
+        handleCollisions();
+    }
+    else {
+        moveTrailer();
+    }
+
+    
+}
 
 /////////////
 /* DISPLAY */
@@ -398,8 +432,11 @@ function init() {
 /* ANIMATION CYCLE */
 /////////////////////
 function animate() {
+    
+    update();
+    
     render();
-
+    
     requestAnimationFrame(animate);
 }
 
@@ -420,6 +457,18 @@ function onResize() {
 ///////////////////////
 function onKeyDown(e) {
     switch (e.key) {
+        case "ArrowLeft":
+            leftArrow = true;
+            break;
+        case "ArrowUp":
+            upArrow = true;
+            break;
+        case "ArrowRight":
+            rightArrow = true;
+            break;
+        case "ArrowDown":
+            downArrow = true;
+            break;
         case '1':
             activeCamera = cameras.front;
             break;
@@ -469,18 +518,6 @@ function onKeyDown(e) {
         case 'F':
             // rotate negative head
             break;
-        case 37: // left arrow
-            leftArrow = true;
-            break;
-        case 38: // up arrow
-            upArrow = true;
-            break;
-        case 39: // right arrow
-            rightArrow = true;
-            break;
-        case 40: // down arrow
-            downArrow = true;
-            break;
         
     }
 }
@@ -490,17 +527,17 @@ function onKeyDown(e) {
 /* KEY UP CALLBACK */
 ///////////////////////
 function onKeyUp(e) {
-    switch (e.keyCode) {
-        case 37: // left arrow
+    switch (e.key) {
+        case "ArrowLeft":
             leftArrow = false;
             break;
-        case 38: // up arrow
+        case "ArrowUp":
             upArrow = false;
             break;
-        case 39: // right arrow
+        case "ArrowRight":
             rightArrow = false;
             break;
-        case 40: // down arrow
+        case "ArrowDown":
             downArrow = false;
             break;
         case 'A':
