@@ -8,6 +8,10 @@ import * as THREE from "three";
 // colors
 const red = 0xFF0000, blue = 0x0000FF, yellow = 0xFFFF00, white = 0xFFFFFF, black = 0x000000, gray = 0x808080, darkGray = 0x404040
 
+// arrow detection
+var leftArrow = false, upArrow = false, downArrow = false, rightArrow = false;
+let isWireframe = false;
+
 let camera, scene, renderer;
 
 let robot;
@@ -422,6 +426,32 @@ function onKeyDown(e) {
         case '4':
             activeCamera = cameras.perspective;
             break;
+        case '7': // 7
+            isWireframe = !isWireframe;
+            scene.traverse(function (object) {
+                if (object instanceof THREE.Mesh) {
+                    if (Array.isArray(object.material)) {
+                        object.material.forEach(mat => mat.wireframe = isWireframe);
+                    } else {
+                        object.material.wireframe = isWireframe;
+                    }
+                }
+            });
+            render();
+            break;
+        case 37: // left arrow
+            leftArrow = true;
+            break;
+        case 38: // up arrow
+            upArrow = true;
+            break;
+        case 39: // right arrow
+            rightArrow = true;
+            break;
+        case 40: // down arrow
+            downArrow = true;
+            break;
+        
     }
 }
 
@@ -429,7 +459,22 @@ function onKeyDown(e) {
 ///////////////////////
 /* KEY UP CALLBACK */
 ///////////////////////
-function onKeyUp(e) {}
+function onKeyUp(e) {
+    switch (e.keyCode) {
+        case 37: // left arrow
+            leftArrow = false;
+            break;
+        case 38: // up arrow
+            upArrow = false;
+            break;
+        case 39: // right arrow
+            rightArrow = false;
+            break;
+        case 40: // down arrow
+            downArrow = false;
+            break;
+    }
+}
 
 init();
 animate();
