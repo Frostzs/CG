@@ -10,7 +10,7 @@ const red = 0xFF0000, blue = 0x0000FF, yellow = 0xFFFF00, white = 0xFFFFFF, blac
 
 // arrow detection
 var leftArrow = false, upArrow = false, downArrow = false, rightArrow = false;
-let isWireframe = false;
+var isWireframe = false;
 
 
 let camera, scene, renderer;
@@ -19,7 +19,7 @@ let robot, trailer;
 
 let cameras = {};
 let activeCamera;
-
+const velocity = 0.5;
 
 /////////////////////
 /* CREATE SCENE(S) */
@@ -86,20 +86,20 @@ function createCameras() {
 /* CREATE OBJECT3D(S) */
 ////////////////////////
 function createCube(width, height, depth, color) {
-    const geometry = new THREE.Box2.Geometry(width, height, depth);
-    const material = new THREE.MeshStandardMaterial({ color });
-    return new ThreeMFLoader.Mesh(geometry, material);
+    const geometry = new THREE.BoxGeometry(width, height, depth);
+    const material = new THREE.MeshBasicMaterial({ color });
+    return new THREE.Mesh(geometry, material);
 }
 
 function createCylinder(radiusTop, radiusBottom, height, radialSegments, color) {
-    const geometry = new THREE.CylinderGeometry(radiusTop, radiusBotoom, height, radialSegments);
-    const material = new THREE.MeshStandardMaterial({ color });
+    const geometry = new THREE.CylinderGeometry(radiusTop, radiusBottom, height, radialSegments);
+    const material = new THREE.MeshBasicMaterial({ color });
     return new THREE.Mesh(geometry, material);
 }
 
 function createBall(radius, height, radialSegments, color) {
     const geometry = new THREE.SphereGeometry(radius, height, radialSegments);
-    const  material = new THREE.MeshStandardMaterial({ color });
+    const  material = new THREE.MeshBasicMaterial({ color });
     return new THREE.Mesh(geometry, material);
 }
 
@@ -292,25 +292,17 @@ function addFoot(obj, x, y, z, material) {
 function createTrailer(x, y, z) {
     trailer = new THREE.Object3D();
 
-    const boxMaterial = new THREE.MeshBasicMaterial({ color: 0x444444 });
-    const wheelMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
-    const hitchMaterial = new THREE.MeshBasicMaterial({ color: 0xaaaaaa });
-
     // --- Contentor (caixa principal) ---
     const containerWidth = 40;
     const containerHeight = 25;
     const containerDepth = 12;
-    const container = new THREE.Mesh(
-        new THREE.BoxGeometry(containerWidth, containerHeight, containerDepth),
-        boxMaterial
-    );
+    const container = createCube(containerWidth, containerHeight, containerDepth, 0x444444);
     container.position.set(0, containerHeight / 2 + 5, 0); // elevate to rest on wheels
     trailer.add(container);
 
     // --- Rodas ---
     const wheelRadius = 3;
     const wheelThickness = 2;
-    const wheelGeometry = new THREE.CylinderGeometry(wheelRadius, wheelRadius, wheelThickness, 12);
 
     // Four wheels:
     const wheelOffsetX = containerWidth / 2 - 5;
@@ -325,7 +317,7 @@ function createTrailer(x, y, z) {
     ];
 
     wheelPositions.forEach(pos => {
-        const wheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
+        const wheel = createCylinder(wheelRadius, wheelRadius, wheelThickness, 12, 0x000000);
         wheel.rotation.z = Math.PI / 2; // rotate to lie flat
         wheel.rotation.y = Math.PI / 2; // rotate to lie flat
         wheel.position.set(...pos);
@@ -334,10 +326,7 @@ function createTrailer(x, y, z) {
 
     // --- Peça de ligação (haste de engate) ---
     const hitchLength = 5;
-    const hitch = new THREE.Mesh(
-        new THREE.BoxGeometry(hitchLength, 2, 2),
-        hitchMaterial
-    );
+    const hitch = createCube(hitchLength, 2, 2, 0xaaaaaa);
     hitch.position.set(-containerWidth / 2 - hitchLength / 2, wheelOffsetY + 1, 0);
     trailer.add(hitch);
 
@@ -354,8 +343,28 @@ function robotBuilt() {
     return false;
 }
 
+function moveFeet() {
+    // rotate feet in the x axis
+    var speed = Math.PI * velocity;
+}
+
+function moveWaist() {
+    // rotate waist/legs in the x and y axis ??
+    var speed = Math.PI * velocity;
+}
+
+function moveArms() {
+    // rotate arms in the y axis and forearms in the z axis
+    var speed = Math.PI * velocity;
+}
+
+function moveHead() {
+    // rotate head in the x axis
+    var speed = Math.PI * velocity;
+}
+
 function moveTrailer() {
-    let speed = 0.5;
+    var speed = velocity;
     if (leftArrow == false && rightArrow == true) {
         trailer.position.x += speed;
     }
