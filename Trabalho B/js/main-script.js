@@ -12,6 +12,9 @@ const red = 0xFF0000, blue = 0x0000FF, yellow = 0xFFFF00, white = 0xFFFFFF, blac
 var leftArrow = false, upArrow = false, downArrow = false, rightArrow = false;
 let isWireframe = false;
 
+// rotation of the robot
+var clock, delta;
+
 let camera, scene, renderer;
 
 let robot;
@@ -40,7 +43,7 @@ function createScene() {
 //////////////////////
 /* CREATE CAMERA(S) */
 //////////////////////
-function createCamera() {
+function createCameras() {
     const aspect = window.innerWidth / window.innerHeight;
 
     // Ortogonal Frontal
@@ -375,6 +378,8 @@ function render() {
 /* INITIALIZE ANIMATION CYCLE */
 ////////////////////////////////
 function init() {
+
+    clock = new THREE.Clock();
     renderer = new THREE.WebGLRenderer({
         antialias: true,
     });
@@ -382,9 +387,10 @@ function init() {
     document.body.appendChild(renderer.domElement);
 
     createScene();
-    createCamera();
+    createCameras();
 
     window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
     window.addEventListener("resize", onResize);
 }
 
@@ -439,6 +445,30 @@ function onKeyDown(e) {
             });
             render();
             break;
+        case 'A':
+            // rotate negative feet
+            break;
+        case 'Q':
+            // rotate positive feet
+            break;
+        case 'W':
+            // rotate positive waist
+            break;
+        case 'S':
+            // rotate negative waist
+            break;
+        case 'E':
+            // rotate positive arm
+            break;
+        case 'D':
+            // rotate negative arm
+            break;
+        case 'R':
+            // rotate positive head
+            break;
+        case 'F':
+            // rotate negative head
+            break;
         case 37: // left arrow
             leftArrow = true;
             break;
@@ -472,6 +502,30 @@ function onKeyUp(e) {
             break;
         case 40: // down arrow
             downArrow = false;
+            break;
+        case 'A':
+            // rotate negative feet
+            break;
+        case 'Q':
+            // rotate positive feet
+            break;
+        case 'W':
+            // rotate positive waist
+            break;
+        case 'S':
+            // rotate negative waist
+            break;
+        case 'E':
+            // rotate positive arm
+            break;
+        case 'D':
+            // rotate negative arm
+            break;
+        case 'R':
+            // rotate positive head
+            break;
+        case 'F':
+            // rotate negative head
             break;
     }
 }
