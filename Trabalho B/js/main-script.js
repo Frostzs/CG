@@ -12,8 +12,6 @@ const red = 0xFF0000, blue = 0x0000FF, yellow = 0xFFFF00, white = 0xFFFFFF, blac
 var leftArrow = false, upArrow = false, downArrow = false, rightArrow = false;
 let isWireframe = false;
 
-// rotation of the robot
-var clock, delta;
 
 let camera, scene, renderer;
 
@@ -357,7 +355,7 @@ function robotBuilt() {
 }
 
 function moveTrailer() {
-    let speed = delta * 20;
+    let speed = 0.5;
     if (leftArrow == false && rightArrow == true) {
         trailer.position.x += speed;
     }
@@ -387,9 +385,6 @@ function handleCollisions() {}
 ////////////
 function update() {
 
-
-    delta = clock.getDelta();
-
     if (robotBuilt() && checkCollisions()) {
         handleCollisions();
     }
@@ -413,7 +408,6 @@ function render() {
 ////////////////////////////////
 function init() {
 
-    clock = new THREE.Clock();
     renderer = new THREE.WebGLRenderer({
         antialias: true,
     });
