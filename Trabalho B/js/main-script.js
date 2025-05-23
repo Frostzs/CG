@@ -471,8 +471,15 @@ function createTrailer(x, y, z) {
 
 function robotBuilt() {
     //check if the robot is built
-    
-    return false;
+    if (robot.getObjectByName("leftFoot").rotation.x == Math.PI / 2 &&
+        robot.getObjectByName("waist").rotation.x == Math.PI / 2 &&
+        robot.getObjectByName("leftArm").position.x == -0.25 * T &&
+        robot.getObjectByName("head").rotation.x == -Math.PI) {
+        return true;
+    }
+    else {
+        return false;
+    }
 }
 
 function moveFeet() {
@@ -623,7 +630,9 @@ function moveTrailer() {
 //////////////////////
 /* CHECK COLLISIONS */
 //////////////////////
-function checkCollisions() {}
+function checkCollisions() {
+
+}
 
 ///////////////////////
 /* HANDLE COLLISIONS */
@@ -642,8 +651,11 @@ function update() {
         moveTrailer();
 
         moveFeet();
+
         moveWaist();
+
         moveArms();
+        
         moveHead();
     }
 
