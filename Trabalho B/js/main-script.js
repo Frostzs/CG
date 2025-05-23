@@ -6,8 +6,9 @@ import * as THREE from "three";
 //////////////////////
 
 // colors
-const red = 0xFF0000, blue = 0x0000FF, yellow = 0xFFFF00, black = 0x000000, gray = 0x808080, lightMetalGray = 0xC0C0C0
+const red = 0xFF0000, blue = 0x0000FF, yellow = 0xFFFF00, black = 0x000000, gray = 0x808080, lightMetalGray = 0xC0C0C0, darkGray = 0x444444
 const creme = 0xFFFDD0
+
 // movement variables
 var leftArrow = false, upArrow = false, downArrow = false, rightArrow = false;
 const velocity = 0.5;
@@ -15,9 +16,6 @@ var rotateFeetNegative = false, rotateFeetPositive = false;
 var rotateWaistNegative = false, rotateWaistPositive = false;
 var rotateArmNegative = false, rotateArmPositive = false;
 var rotateHeadNegative = false, rotateHeadPositive = false;
-
-
-
 var isWireframe = false;
 
 // global scale
@@ -25,12 +23,10 @@ const SCALE = 30;
 const T = SCALE;
 
 let camera, scene, renderer;
-
 let robot, trailer;
-
 let cameras = {};
 let activeCamera;
-
+let isTrailerAttached = false;
 
 /////////////////////
 /* CREATE SCENE(S) */
@@ -45,7 +41,6 @@ function createScene() {
 
     createRobot(0, 0, 0);
     createTrailer(0, -35, -40);
-
 
 }
 
@@ -86,6 +81,7 @@ function createCameras() {
 
     // Define a câmera ativa inicialmente
     activeCamera = cameras.perspective;
+
 }
 
 
@@ -100,24 +96,26 @@ function createCube(width, height, depth, color) {
     const geometry = new THREE.BoxGeometry(width, height, depth);
     const material = new THREE.MeshBasicMaterial({ color });
     return new THREE.Mesh(geometry, material);
+
 }
 
 function createCylinder(radiusTop, radiusBottom, height, radialSegments, color) {
     const geometry = new THREE.CylinderGeometry(radiusTop, radiusBottom, height, radialSegments);
     const material = new THREE.MeshBasicMaterial({ color });
     return new THREE.Mesh(geometry, material);
+
 }
 
 function createBall(radius, height, radialSegments, color) {
     const geometry = new THREE.SphereGeometry(radius, height, radialSegments);
     const  material = new THREE.MeshBasicMaterial({ color });
     return new THREE.Mesh(geometry, material);
+
 }
 
 //////////////////
 /* CREATE ROBOT */
 //////////////////
-
 function createRobot(x, y, z) {
     robot = new THREE.Object3D();
 
@@ -190,7 +188,6 @@ function createRobot(x, y, z) {
 ///////////////////////////////
 /* CREATE PARTS OF THE ROBOT */
 ///////////////////////////////
-
 function createGrille(width, height, depth, color) {
     const grille = new THREE.Object3D();
 
@@ -211,7 +208,7 @@ function createGrille(width, height, depth, color) {
 
     // Horizontal bars
     const numHBars = 5;
-    const spacing = height / (numHBars - 1); // 4 spaces in 5 bars
+    const spacing = height / (numHBars - 1); // 4 spaces and 5 bars
 
     for (let i = 0; i < numHBars; i++) {
         const y = halfH - i * spacing;
@@ -221,12 +218,13 @@ function createGrille(width, height, depth, color) {
     }
 
     return grille;
+
 }
 
 function createHead() {
     const head = new THREE.Object3D();
 
-    const r = 0.2 * T, rS = 16;
+    const r = 0.2 * T, rS = 100;
 
     const headBase = createCylinder(0.225 * T, 0.15 * T, 0.3 * T, 32, blue);
     headBase.rotation.x = Math.PI / 2; // lay flat to look like a helmet
@@ -319,7 +317,7 @@ function createTorso() {
     torso.add(bodytorso);
 
     const grille = createGrille(0.4 * T, 0.2 * T, 0.05 * T, lightMetalGray);
-    grille.position.set(0, 0, 0.22 * T); // entre a frente do torso e as janelas
+    grille.position.set(0, 0, 0.22 * T); // between torso and windows
     torso.add(grille);
 
     return torso;
@@ -329,11 +327,11 @@ function createTorso() {
 function createTyre() {
     const wheel = new THREE.Object3D();
 
-    const tyre = createCylinder(0.1 * T, 0.1 * T, 0.1 * T, 16, black);
+    const tyre = createCylinder(0.12 * T, 0.12 * T, 0.1 * T, 16, black);
     tyre.rotation.z = Math.PI / 2; // rotate to lie flat
     wheel.add(tyre);
 
-    const rim = createCylinder(0.06 * T, 0.06 * T, 0.1 * T, 16, lightMetalGray);
+    const rim = createCylinder(0.07 * T, 0.07 * T, 0.1 * T, 16, lightMetalGray);
     rim.rotation.z = Math.PI / 2; // rotate to lie flat
     rim.position.set(0.01, 0, 0);
     wheel.add(rim);
@@ -357,8 +355,8 @@ function createWaist() {
     waist.add(bodywaist);
 
     // Tyres
-    addTyre(waist, -0.35 * T, 0, 3.5); // left tyre
-    addTyre(waist, 0.35 * T, 0, 3.5); // right tyre
+    addTyre(waist, -0.35 * T, 0.5, 3.5); // left tyre
+    addTyre(waist, 0.35 * T, 0.5, 3.5); // right tyre
 
     return waist;
 
@@ -377,7 +375,7 @@ function createArm() {
     upperArm.add(forearm);
 
     const blueDetail = createCube(0.1 * T, 0.38 * T, 0.01 * T, blue);
-    blueDetail.position.set(0, 0, 0.085 * T);
+    blueDetail.position.set(0, 0, 0.149 * T);
     forearm.add(blueDetail);
 
 
@@ -402,17 +400,18 @@ function createLeg(side) {
     // Tyres on the right side
     const xOffset = side === "left" ? -0.15 * T : 0.15 * T;
 
-    addTyre(shin, xOffset, 0.15 * T, 5);   // pneu superior
-    addTyre(shin, xOffset, -0.1 * T, 5);   // pneu inferior
+    addTyre(shin, xOffset, 0.1 * T, 4.5);   // superior tyre
+    addTyre(shin, xOffset, -0.2 * T, 4.5);   // inferior tyre
 
     leg.add(thigh);
     return leg;
+
 }
 
 function createFoot() {
     const foot = new THREE.Object3D();
 
-    const bodyfoot = createCube(0.2 * T, 0.1 * T, 0.4 * T, red);
+    const bodyfoot = createCube(0.2 * T, 0.15 * T, 0.4 * T, blue);
     bodyfoot.position.set(0, 0, 0);
     foot.add(bodyfoot);
 
@@ -428,38 +427,50 @@ function createTrailer(x, y, z) {
     const containerWidth = 40;
     const containerHeight = 25;
     const containerDepth = 12;
-    const container = createCube(containerWidth, containerHeight, containerDepth, 0x444444);
+    const container = createCube(containerWidth, containerHeight, containerDepth, darkGray);
     container.position.set(0, containerHeight / 2 + 5, 0); // elevate to rest on wheels
     trailer.add(container);
 
     // --- Rodas ---
     const wheelRadius = 3;
     const wheelThickness = 2;
+    const wheelScale = 1.5;
 
-    // Four wheels:
     const wheelOffsetX = containerWidth / 2 - 5;
-    const wheelOffsetY = wheelRadius - 5;
+    const wheelOffsetY = wheelRadius * wheelScale - 5;
     const wheelOffsetZ = containerDepth / 2 + 1;
 
     const wheelPositions = [
-        [wheelOffsetX-12, wheelOffsetY, -wheelOffsetZ], // front-left
-        [wheelOffsetX, wheelOffsetY, wheelOffsetZ],  // front-right
-        [wheelOffsetX, wheelOffsetY, -wheelOffsetZ],  // rear-left
-        [wheelOffsetX-12, wheelOffsetY, wheelOffsetZ],   // rear-right
+        [wheelOffsetX - 12, wheelOffsetY, -wheelOffsetZ], // front-left
+        [wheelOffsetX, wheelOffsetY, wheelOffsetZ],       // front-right
+        [wheelOffsetX, wheelOffsetY, -wheelOffsetZ],      // rear-left
+        [wheelOffsetX - 12, wheelOffsetY, wheelOffsetZ],  // rear-right
     ];
 
     wheelPositions.forEach(pos => {
         const wheel = createTyre();
         wheel.rotation.y = -Math.PI / 2;
-        wheel.scale.set(2, 2, 2); // scale the wheel
+        wheel.scale.set(wheelScale, wheelScale, wheelScale); // escala ajustada
         wheel.position.set(...pos);
         trailer.add(wheel);
     });
 
+    // --- Suporte das rodas traseiras ---
+    const supportWidth = containerWidth / 2;
+    const supportHeight = wheelRadius * wheelScale;
+    const supportDepth = containerDepth;
+    const support = createCube(supportWidth, supportHeight, supportDepth, blue);
+    const supportX = 9;
+    const supportY = container.position.y - containerHeight / 2 - supportHeight / 2;
+    const supportZ = container.position.z - containerDepth / 2 + supportDepth / 2;
+    
+    support.position.set(supportX, supportY, supportZ);
+    trailer.add(support);    
+    
     // --- Peça de ligação (haste de engate) ---
     const hitchLength = 5;
     const hitch = createCube(hitchLength, 2, 2, 0xaaaaaa);
-    hitch.position.set(-containerWidth / 2 - hitchLength / 2, wheelOffsetY + 6, 0);
+    hitch.position.set(-containerWidth / 2 - hitchLength / 2, 6, 0);
     trailer.add(hitch);
 
     // --- Posição final do reboque ---
@@ -467,6 +478,7 @@ function createTrailer(x, y, z) {
     trailer.rotation.y = Math.PI / 2;
 
     scene.add(trailer);
+
 }
 
 function robotBuilt() {
@@ -480,6 +492,7 @@ function robotBuilt() {
     else {
         return true;
     }
+
 }
 
 function moveFeet() {
@@ -512,6 +525,7 @@ function moveFeet() {
             rightFoot.rotation.x = 0;
         }
     }
+
 }
 
 function moveWaist() {
@@ -538,6 +552,7 @@ function moveWaist() {
     const waistAngle = waist.rotation.x;
     const yOffset = - legLength * (1 - Math.cos(waistAngle));
     robot.position.y = yOffset;
+
 }
 
 function moveArms() {
@@ -589,6 +604,7 @@ function moveArms() {
             rightForearm.rotation.x = 0;
         }
     }
+
 }
 
 function moveHead() {
@@ -609,6 +625,7 @@ function moveHead() {
         head.rotation.x += speed;
         if (head.rotation.x > 0) head.rotation.x = 0;
     }
+
 }
 
 function moveTrailer() {
@@ -630,21 +647,52 @@ function moveTrailer() {
 //////////////////////
 /* CHECK COLLISIONS */
 //////////////////////
-function checkCollisions() {
+function checkTrailerCollision() {
+    const trailerBox = new THREE.Box3().setFromObject(trailer);
+    const robotBox = new THREE.Box3().setFromObject(robot);
+    return trailerBox.intersectsBox(robotBox);
 
 }
 
 ///////////////////////
 /* HANDLE COLLISIONS */
 ///////////////////////
-function handleCollisions() {}
+function handleCollisions() {
+    if (checkTrailerCollision() && !isTrailerAttached) {
+        isTrailerAttached = true;
+
+        // Define o ponto final de ligação (ajusta consoante a tua estrutura)
+        const targetOffset = new THREE.Vector3(0, -15.4, -30.2); // offset em relação ao camião
+        const targetPosition = new THREE.Vector3().copy(robot.position).add(targetOffset);
+
+        let progress = 0;
+        const steps = 60; // frames da animação
+        const initialPosition = trailer.position.clone();
+
+        function animateAttachment() {
+            if (progress >= 1) {
+                trailer.position.copy(targetPosition);
+                return;
+            }
+
+            progress += 1 / steps;
+            trailer.position.lerpVectors(initialPosition, targetPosition, progress);
+            requestAnimationFrame(animateAttachment);
+        }
+
+        animateAttachment();
+    }
+
+}
+
+
 
 ////////////
 /* UPDATE */
 ////////////
 function update() {
 
-    if (!robotBuilt() && checkCollisions()) {
+    if (!robotBuilt()) {
         handleCollisions();
     }
     else {
@@ -658,7 +706,6 @@ function update() {
 
         moveHead();
     }
-
     
 }
 
@@ -667,6 +714,7 @@ function update() {
 /////////////
 function render() {
     renderer.render(scene, activeCamera);
+
 }
 
 
@@ -687,6 +735,7 @@ function init() {
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
     window.addEventListener("resize", onResize);
+
 }
 
 /////////////////////
@@ -699,6 +748,7 @@ function animate() {
     render();
     
     requestAnimationFrame(animate);
+
 }
 
 ////////////////////////////
@@ -711,6 +761,7 @@ function onResize() {
         activeCamera.aspect = window.innerWidth / window.innerHeight;
         activeCamera.updateProjectionMatrix();
     }
+
 }
 
 ///////////////////////
@@ -797,6 +848,7 @@ function onKeyDown(e) {
             break;
         
     }
+
 }
 
 
@@ -858,6 +910,7 @@ function onKeyUp(e) {
             rotateHeadNegative = false;
             break;
     }
+
 }
 
 init();
