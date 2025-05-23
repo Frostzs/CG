@@ -475,10 +475,10 @@ function robotBuilt() {
         robot.getObjectByName("waist").rotation.x == Math.PI / 2 &&
         robot.getObjectByName("leftArm").position.x == -0.25 * T &&
         robot.getObjectByName("head").rotation.x == -Math.PI) {
-        return true;
+        return false;
     }
     else {
-        return false;
+        return true;
     }
 }
 
@@ -644,7 +644,7 @@ function handleCollisions() {}
 ////////////
 function update() {
 
-    if (robotBuilt() && checkCollisions()) {
+    if (!robotBuilt() && checkCollisions()) {
         handleCollisions();
     }
     else {
@@ -655,7 +655,7 @@ function update() {
         moveWaist();
 
         moveArms();
-        
+
         moveHead();
     }
 
@@ -708,8 +708,8 @@ function onResize() {
     renderer.setSize(window.innerWidth, window.innerHeight);
 
     if (window.innerHeight > 0 && window.innerWidth > 0) {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
+        activeCamera.aspect = window.innerWidth / window.innerHeight;
+        activeCamera.updateProjectionMatrix();
     }
 }
 
