@@ -357,8 +357,8 @@ function createWaist() {
     waist.add(bodywaist);
 
     // Tyres
-    addTyre(waist, -0.35 * T, 0, 0); // left tyre
-    addTyre(waist, 0.35 * T, 0, 0); // right tyre
+    addTyre(waist, -0.35 * T, 0, 3.5); // left tyre
+    addTyre(waist, 0.35 * T, 0, 3.5); // right tyre
 
     return waist;
 
@@ -367,12 +367,12 @@ function createWaist() {
 function createArm() {
     const arm = new THREE.Object3D();
 
-    const upperArm = createCube(0.15 * T, 0.4 * T, 0.15 * T, red);
+    const upperArm = createCube(0.15 * T, 0.4 * T, 0.3 * T, red);
 
     upperArm.position.set(0, -0.15 * T, 0);
     arm.add(upperArm);
 
-    const forearm = createCube(0.15 * T, 0.4 * T, 0.15 * T, red);
+    const forearm = createCube(0.15 * T, 0.4 * T, 0.3 * T, red);
     forearm.position.set(0, -0.35 * T, 0);
     upperArm.add(forearm);
 
@@ -402,8 +402,8 @@ function createLeg(side) {
     // Tyres on the right side
     const xOffset = side === "left" ? -0.15 * T : 0.15 * T;
 
-    addTyre(shin, xOffset, 0.15 * T, 0);   // pneu superior
-    addTyre(shin, xOffset, -0.1 * T, 0);   // pneu inferior
+    addTyre(shin, xOffset, 0.15 * T, 5);   // pneu superior
+    addTyre(shin, xOffset, -0.1 * T, 5);   // pneu inferior
 
     leg.add(thigh);
     return leg;
@@ -438,20 +438,20 @@ function createTrailer(x, y, z) {
 
     // Four wheels:
     const wheelOffsetX = containerWidth / 2 - 5;
-    const wheelOffsetY = wheelRadius;
+    const wheelOffsetY = wheelRadius - 5;
     const wheelOffsetZ = containerDepth / 2 + 1;
 
     const wheelPositions = [
-        [wheelOffsetX-7, wheelOffsetY, -wheelOffsetZ], // front-left
+        [wheelOffsetX-12, wheelOffsetY, -wheelOffsetZ], // front-left
         [wheelOffsetX, wheelOffsetY, wheelOffsetZ],  // front-right
         [wheelOffsetX, wheelOffsetY, -wheelOffsetZ],  // rear-left
-        [wheelOffsetX-7, wheelOffsetY, wheelOffsetZ],   // rear-right
+        [wheelOffsetX-12, wheelOffsetY, wheelOffsetZ],   // rear-right
     ];
 
     wheelPositions.forEach(pos => {
         const wheel = createTyre();
         wheel.rotation.y = -Math.PI / 2;
-        wheel.scale.set(1.4, 1.4, 1.4); // scale the wheel
+        wheel.scale.set(2, 2, 2); // scale the wheel
         wheel.position.set(...pos);
         trailer.add(wheel);
     });
@@ -459,7 +459,7 @@ function createTrailer(x, y, z) {
     // --- Peça de ligação (haste de engate) ---
     const hitchLength = 5;
     const hitch = createCube(hitchLength, 2, 2, 0xaaaaaa);
-    hitch.position.set(-containerWidth / 2 - hitchLength / 2, wheelOffsetY + 1, 0);
+    hitch.position.set(-containerWidth / 2 - hitchLength / 2, wheelOffsetY + 6, 0);
     trailer.add(hitch);
 
     // --- Posição final do reboque ---
