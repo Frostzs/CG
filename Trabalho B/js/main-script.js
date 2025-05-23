@@ -475,10 +475,10 @@ function robotBuilt() {
         robot.getObjectByName("waist").rotation.x == Math.PI / 2 &&
         robot.getObjectByName("leftArm").position.x == -0.25 * T &&
         robot.getObjectByName("head").rotation.x == -Math.PI) {
-        return true;
+        return false;
     }
     else {
-        return false;
+        return true;
     }
 }
 
