@@ -115,7 +115,7 @@ function createScene() {
     scene = new THREE.Scene();
 
     const groundGeo = new THREE.PlaneGeometry(100, 100);
-    const groundMat = new THREE.MeshBasicMaterial({ color: 0x88cc88 });
+    const groundMat = new THREE.MeshBasicMaterial({ color: 0xffffff,map: generateFloralTexture() });
     groundPlane = new THREE.Mesh(groundGeo, groundMat);
     groundPlane.rotation.x = -Math.PI / 2;
     scene.add(groundPlane);
@@ -124,7 +124,7 @@ function createScene() {
     const skyMat = new THREE.MeshBasicMaterial({
     color: 0xffffff,             // branco, pois a cor será substituída pela textura
     side: THREE.BackSide,
-    map: generateStarryTexture() // define uma textura inicial (opcional, mas ajuda)
+    map: generateStarryTexture()
 });
 
     skyDome = new THREE.Mesh(skyGeo, skyMat);
@@ -141,9 +141,9 @@ function createScene() {
 //////////////////////
 function createCamera() {
     const aspect = window.innerWidth / window.innerHeight;
-    const pers = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
-    pers.position.set(0, 10, 50);
-    pers.lookAt(0, 0, 0);
+    const pers = new THREE.PerspectiveCamera(75, aspect, 0.1, 500);
+    pers.position.set(0, 50, 50);
+    pers.lookAt(0, 10, 10);
 
     cameras = {
         perspective: pers
