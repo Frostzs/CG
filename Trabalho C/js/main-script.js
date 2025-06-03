@@ -17,14 +17,14 @@ function generateFloralTexture() {
     canvas.width = canvas.height = canvasSize;
     const ctx = canvas.getContext('2d');
 
-    ctx.fillStyle = '#ccffcc'; // light green
+    ctx.fillStyle = '#0b3d0b'; // light green
     ctx.fillRect(0, 0, canvasSize, canvasSize);
 
     const colors = ['white', 'yellow', 'violet', 'lightblue'];
     for (let i = 0; i < 500; i++) {
         const x = Math.random() * canvasSize;
         const y = Math.random() * canvasSize;
-        const r = 2 + Math.random() * 2;
+        const r = 0.5 + Math.random() * 1.5;
         ctx.beginPath();
         ctx.arc(x, y, r, 0, Math.PI * 2);
         ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
@@ -39,24 +39,42 @@ function generateStarryTexture() {
     canvas.width = canvas.height = canvasSize;
     const ctx = canvas.getContext('2d');
 
+    // Fundo com degradê de azul escuro para violeta escuro
     const gradient = ctx.createLinearGradient(0, 0, 0, canvasSize);
-    gradient.addColorStop(0, '#00008b'); // dark blue
-    gradient.addColorStop(1, '#4b0082'); // dark violet
+    gradient.addColorStop(0, '#000022'); // Azul quase preto
+    gradient.addColorStop(1, '#14001a'); // Violeta escuro
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvasSize, canvasSize);
 
-    for (let i = 0; i < 500; i++) {
+    // Desenhar estrelas
+    for (let i = 0; i < 600; i++) {
         const x = Math.random() * canvasSize;
         const y = Math.random() * canvasSize;
-        const r = 1 + Math.random();
+        const r = 0.2 + Math.random() * 1;
+        const alpha = 1.0;
         ctx.beginPath();
         ctx.arc(x, y, r, 0, Math.PI * 2);
-        ctx.fillStyle = 'white';
+        ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+        ctx.fill();
+    }
+
+    // Algumas estrelas maiores e mais brilhantes (efeito visual de profundidade)
+    for (let i = 0; i < 30; i++) {
+        const x = Math.random() * canvasSize;
+        const y = Math.random() * canvasSize;
+        const r = 2 + Math.random() * 2;
+        const gradientStar = ctx.createRadialGradient(x, y, 0, x, y, r);
+        gradientStar.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+        gradientStar.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        ctx.fillStyle = gradientStar;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
         ctx.fill();
     }
 
     return new THREE.CanvasTexture(canvas);
 }
+
 
 
 /////////////////////
@@ -73,7 +91,12 @@ function createScene() {
     scene.add(groundPlane);
 
     const skyGeo = new THREE.SphereGeometry(100, 32, 32);
-    const skyMat = new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.BackSide });
+    const skyMat = new THREE.MeshBasicMaterial({
+    color: 0xffffff,             // branco, pois a cor será substituída pela textura
+    side: THREE.BackSide,
+    map: generateStarryTexture() // define uma textura inicial (opcional, mas ajuda)
+});
+
     skyDome = new THREE.Mesh(skyGeo, skyMat);
     scene.add(skyDome);
 
