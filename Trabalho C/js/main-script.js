@@ -34,6 +34,7 @@ const keys = {}, movementVector = new THREE.Vector2(0, 0);
 let shadeCalculation = true;
 
 // colors
+const moonYellow = 0xEBC815
 const yellow = 0xf2b632;
 const white = 0xffffff;
 const brown = 0x5a3825;
@@ -106,7 +107,7 @@ function generateStarryTexture() {
 }
 
 
-
+// #region CREATE SCENE(S)
 /////////////////////
 /* CREATE SCENE(S) */
 /////////////////////
@@ -122,25 +123,35 @@ function createScene() {
 
     const skyGeo = new THREE.SphereGeometry(100, 32, 32);
     const skyMat = new THREE.MeshBasicMaterial({
-    color: 0xffffff,             // branco, pois a cor será substituída pela textura
-    side: THREE.BackSide,
-    map: generateStarryTexture()
-});
+        color: 0xffffff,             // branco, pois a cor será substituída pela textura
+        side: THREE.BackSide,
+        map: generateStarryTexture()
+    });
 
     skyDome = new THREE.Mesh(skyGeo, skyMat);
     scene.add(skyDome);
 
     const light = new THREE.AmbientLight(0xffffff, 1);
     scene.add(light);
+
+    createMoon(3, 24, 16);
+    scene.add(moon);
+
+    const moonLight = new THREE.DirectionalLight(0xffffff, 4);
+    moonLight.position.copy(moon.position); // Place light at the moon
+    moonLight.target.position.set(0, 10, 50); // Point light at the center of the scene
+    scene.add(moonLight);
+    scene.add(moonLight.target);
+    
 }
+// #endregion
 
-
-
+// #region CREATE CAMERA(S)
 //////////////////////
 /* CREATE CAMERA(S) */
 //////////////////////
 function createCamera() {
-    const aspect = window.innerWidth / window.innerHeight;
+     const aspect = window.innerWidth / window.innerHeight;
     const pers = new THREE.PerspectiveCamera(75, aspect, 0.1, 500);
     pers.position.set(0, 50, 50);
     pers.lookAt(0, 10, 10);
@@ -151,9 +162,9 @@ function createCamera() {
 
     activeCamera = cameras.perspective;
 }
+// #endregion
 
-
-
+// #region CREATE LIGHTS
 /////////////////////
 /* CREATE LIGHT(S) */
 /////////////////////
@@ -161,7 +172,9 @@ function updateLights() {
     'use strict';
     // TO DO: Update lights if needed
 }
+// #endregion
 
+// #region SHADE CALCULATION
 ///////////////////////
 /* SHADE CALCULATION */
 ///////////////////////
@@ -169,7 +182,9 @@ function updateShadeCalculation() {
     'use strict';
     // TO DO: Update shade calculation if needed
 }
+// #endregion
 
+// #region CREATE OBJECT3D(S)
 ////////////////////////
 /* CREATE OBJECT3D(S) */
 ////////////////////////
@@ -209,9 +224,57 @@ function createTree() {
     // Leaves
 }
 
-function createMoon() {
+function createMoon(radius, widthSegments, heightSegments) {
     'use strict';
-    // TO DO: Create moon as Object3D
+    // Create an empty geometry
+    const geometry = new THREE.BufferGeometry();
+    const vertices = [];
+    const indices = [];
+    const uvs = [];
+
+    // Generate vertices
+    for (let y = 0; y <= heightSegments; y++) {
+        const v = y / heightSegments;
+        const theta = v * Math.PI;
+        for (let x = 0; x <= widthSegments; x++) {
+            const u = x / widthSegments;
+            const phi = u * Math.PI * 2;
+
+            const px = -radius * Math.cos(phi) * Math.sin(theta);
+            const py =  radius * Math.cos(theta);
+            const pz =  radius * Math.sin(phi) * Math.sin(theta);
+
+            vertices.push(px, py, pz);
+            uvs.push(u, v);
+        }
+    }
+
+    // Generate faces (indices)
+    for (let y = 0; y < heightSegments; y++) {
+        for (let x = 0; x < widthSegments; x++) {
+            const a = y * (widthSegments + 1) + x;
+            const b = a + widthSegments + 1;
+            const c = b + 1;
+            const d = a + 1;
+
+            // Each quad is made of two triangles
+            indices.push(a, b, d);
+            indices.push(b, c, d);
+        }
+    }
+
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    geometry.setIndex(indices);
+    geometry.computeVertexNormals();
+
+    
+    const material = new THREE.MeshPhongMaterial({ color: moonYellow, emissive: moonYellow });
+
+    const moonMesh = new THREE.Mesh(geometry, material);
+    moonMesh.position.set(20, 30, -30); // Position it in the sky
+
+    moon = moonMesh;
 }
 
 function createOvniLights() {
@@ -293,22 +356,29 @@ function createAlentejoHouse(x, y, z) {
 
     scene.add(houseAlentejo);
 }
+// #endregion
 
+// #region COLLISIONS
 //////////////////////
 /* CHECK COLLISIONS */
 //////////////////////
 function checkCollisions() {}
 
+
 ///////////////////////
 /* HANDLE COLLISIONS */
 ///////////////////////
 function handleCollisions() {}
+// #endregion
 
+// #region UPDATE
 ////////////
 /* UPDATE */
 ////////////
 function update() {}
+// #endregion
 
+// #region DISPLAY
 /////////////
 /* DISPLAY */
 /////////////
@@ -317,9 +387,9 @@ function createRenderer() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 }
+// #endregion
 
-
-
+// #region INIT
 ////////////////////////////////
 /* INITIALIZE ANIMATION CYCLE */
 ////////////////////////////////
@@ -332,8 +402,9 @@ function init() {
     window.addEventListener('resize', onResize);
 
 }
+// #endregion
 
-
+// #region ANIMATION CYCLE
 /////////////////////
 /* ANIMATION CYCLE */
 /////////////////////
@@ -348,8 +419,9 @@ function animate() {
     
     requestAnimationFrame(animate);
 }
+// #endregion
 
-
+// #region RESIZE WINDOW
 ////////////////////////////
 /* RESIZE WINDOW CALLBACK */
 ////////////////////////////
@@ -361,8 +433,9 @@ function onResize() {
         activeCamera.updateProjectionMatrix();
     }
 }
+// #endregion
 
-
+// #region KEY DOWN
 ///////////////////////
 /* KEY DOWN CALLBACK */
 ///////////////////////
@@ -381,6 +454,9 @@ function onKeyDown(e) {
             break;
     }
 }
+// #endregion 
+
+// #region KEY UP
 ///////////////////////
 /* KEY UP CALLBACK */
 ///////////////////////
@@ -395,7 +471,7 @@ function onKeyUp(e) {
             break;
     }
 }
-
+// #endregion
 
 init();
 
