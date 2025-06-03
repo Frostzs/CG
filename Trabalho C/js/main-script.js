@@ -9,6 +9,8 @@ let groundPlane, skyDome;
 let generateGroundTexture = false;
 let generateSkyTexture = false;
 let scene, activeCamera, renderer;
+let globalDirectionalLight;
+let globalDirectionalLightOn = true;
 
 var cameras = []
 
@@ -131,17 +133,17 @@ function createScene() {
     skyDome = new THREE.Mesh(skyGeo, skyMat);
     scene.add(skyDome);
 
-    const light = new THREE.AmbientLight(0xffffff, 1);
-    scene.add(light);
+    const ambient = new THREE.AmbientLight(0xffffff, 0.3);
+    scene.add(ambient);
 
     createMoon(3, 24, 16);
     scene.add(moon);
 
-    const moonLight = new THREE.DirectionalLight(0xffffff, 4);
-    moonLight.position.copy(moon.position); // Place light at the moon
-    moonLight.target.position.set(0, 10, 50); // Point light at the center of the scene
-    scene.add(moonLight);
-    scene.add(moonLight.target);
+    globalDirectionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
+    globalDirectionalLight.position.set(30, 40, 20); // angle != than 0 with the xOy plane
+    globalDirectionalLight.target.position.set(0, 0, 0);
+    scene.add(globalDirectionalLight);
+    scene.add(globalDirectionalLight.target);
     
 }
 // #endregion
@@ -451,6 +453,10 @@ function onKeyDown(e) {
             generateSkyTexture = true;
             skyDome.material.map = generateStarryTexture();
             skyDome.material.needsUpdate = true;
+            break;
+        case 68: // key 'D' or 'd'
+            globalDirectionalLightOn = !globalDirectionalLightOn;
+            globalDirectionalLight.visible = globalDirectionalLightOn;
             break;
     }
 }
