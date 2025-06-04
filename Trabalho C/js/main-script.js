@@ -14,7 +14,8 @@ let globalDirectionalLightOn = true;
 
 var cameras = []
 
-var moon, ovni, houseAlentejo, tree;
+var moon, ovni, tree;
+let houseAlentejo
 // var skydome, terrain;
 
 var treePos = [], trees = [];
@@ -27,8 +28,8 @@ var whatMAterial = "???";
 */
 
 // Materials
-const materials = new Map(), materialsLAmbert = new Map(), materialsPhong = new Map(), 
-    materialsToon = new Map(), materialBAsic = new Map(), clock = new THREE.Clock();
+const materials = new Map(), materialsLambert = new Map(), materialsPhong = new Map(), 
+    materialsToon = new Map(), materialsBasic = new Map(), clock = new THREE.Clock();
 
 const keys = {}, movementVector = new THREE.Vector2(0, 0);
 
@@ -170,7 +171,7 @@ function createCamera() {
 //////////////////////
 /* CREATE MATERIALS */
 //////////////////////
-function createMAterials() {
+function createMaterials() {
     'use strict';
     materials.set("wall", new THREE.MeshLambertMaterial({ color: white, side: THREE.FrontSide }));
     materials.set("window", new THREE.MeshLambertMaterial({ color: blue, side: THREE.FrontSide }));
@@ -181,13 +182,13 @@ function createMAterials() {
     // TO DO: Create materials for objects
     // TO DO Rodrigo: from my parts
 
-    createLAmbertMAterials();
+    createLambertMaterials();
     createPhongMaterials();
-    createToonMAterials();
+    createToonMaterials();
     createBasicMaterials();
 }
 
-function createToonMAterials() {
+function createToonMaterials() {
     'use strict';
     materialsToon.set("wall", new THREE.MeshLambertMaterial({ color: white }));
     materialsToon.set("window", new THREE.MeshLambertMaterial({ color: blue }));
@@ -199,14 +200,14 @@ function createToonMAterials() {
     // TO DO Rodrigo: from my parts
 }
 
-function createLAmbertMAterials() {
+function createLambertMaterials() {
     'use strict';
-    materialsLAmbert.set("wall", new THREE.MeshLambertMaterial({ color: white }));
-    materialsLAmbert.set("window", new THREE.MeshLambertMaterial({ color: blue }));
-    materialsLAmbert.set("door", new THREE.MeshLambertMaterial({ color: brown }));
-    materialsLAmbert.set("frame", new THREE.MeshLambertMaterial({ color: yellow }));
-    materialsLAmbert.set("baseTrim", new THREE.MeshLambertMaterial({ color: yellow }));
-    materialsLAmbert.set("ceiling", new THREE.MeshLambertMaterial({ color: tileOrange }));
+    materialsLambert.set("wall", new THREE.MeshLambertMaterial({ color: white }));
+    materialsLambert.set("window", new THREE.MeshLambertMaterial({ color: blue }));
+    materialsLambert.set("door", new THREE.MeshLambertMaterial({ color: brown }));
+    materialsLambert.set("frame", new THREE.MeshLambertMaterial({ color: yellow }));
+    materialsLambert.set("baseTrim", new THREE.MeshLambertMaterial({ color: yellow }));
+    materialsLambert.set("ceiling", new THREE.MeshLambertMaterial({ color: tileOrange }));
     // TO DO: Create Lambert materials for objects
     // TO DO Rodrigo: from my parts
 }
@@ -379,81 +380,45 @@ function addQuadToGroup(group, p1, p2, p3, p4, material) {
 }
 
 // #region CREATE HOUSE
-function createWindowDoor(x, y, z) {
-    'use strict';
-    const windowGroup = new THREE.Object3D();
-    const mat = materials.get("window");
-
-    const width = 0.3;
-    const height = 0.4;
-    const halfWidth = width / 2;
-
-    const centerY = 1.0; // height of the window door center
-    const bottom = centerY - height / 2;
-    const top = centerY + height / 2;
-
-    const zFront = 5.01;
-
-    addQuadToGroup(windowGroup,
-        [-halfWidth, bottom, zFront],
-        [halfWidth, bottom, zFront],
-        [halfWidth, top, zFront],
-        [-halfWidth, top, zFront],
-        mat
-    );
-
-    houseAlentejo.add(windowGroup);
-}
-
 function createFrameDoor(x, y, z) {
     'use strict';
-
     const group = new THREE.Object3D();
-//  const mat = materials.get("frame");
-    const mat = new THREE.MeshBasicMaterial({ color: yellow });
+    const mat = materials.get("frame");
 
-    const doorWidth = 0.7;
-    const doorHeight = 2.0;
-    const frameThickness = 0.2;
+    const width = 1.0;
+    const height = 2.0;
+    const thickness = 0.25;
+    const zFront = 4.5;
 
-    const halfWidth = doorWidth / 2;
-    const zFront = 5;
-    const bottom = 0;
-    const top = bottom + doorHeight;
+    const halfWidth = width / 2;
+    const top = 0.5;
+    const bottom = -1;
 
-    // Left 
+
+    // Left
     addQuadToGroup(group,
-        [-halfWidth - frameThickness, bottom, zFront],
+        [-halfWidth - thickness, bottom, zFront],
         [-halfWidth, bottom, zFront],
         [-halfWidth, top, zFront],
-        [-halfWidth - frameThickness, top, zFront],
+        [-halfWidth - thickness, top, zFront],
         mat
     );
 
     // Right
     addQuadToGroup(group,
         [halfWidth, bottom, zFront],
-        [halfWidth + frameThickness, bottom, zFront],
-        [halfWidth + frameThickness, top, zFront],
+        [halfWidth + thickness, bottom, zFront],
+        [halfWidth + thickness, top, zFront],
         [halfWidth, top, zFront],
         mat
     );
 
     // Top
     addQuadToGroup(group,
-        [-halfWidth - frameThickness, top, zFront],
-        [halfWidth + frameThickness, top, zFront],
-        [halfWidth + frameThickness, top + frameThickness, zFront],
-        [-halfWidth - frameThickness, top + frameThickness, zFront],
-        mat
-    );
-
-    // Bottom
-    addQuadToGroup(group,
-        [-halfWidth - frameThickness, bottom - frameThickness, zFront],
-        [halfWidth + frameThickness, bottom - frameThickness, zFront],
-        [halfWidth + frameThickness, bottom, zFront],
-        [-halfWidth - frameThickness, bottom, zFront],
+        [-halfWidth - thickness, top, zFront],
+        [halfWidth + thickness, top, zFront],
+        [halfWidth + thickness, top + thickness, zFront],
+        [-halfWidth - thickness, top + thickness, zFront],
         mat
     );
 
@@ -462,133 +427,130 @@ function createFrameDoor(x, y, z) {
 
 function createDoor(x, y, z) {
     'use strict';
-
     const door = new THREE.Object3D();
-//  const mat = materials.get("door");
-    const mat = new THREE.MeshBasicMaterial({ color: brown });
+    const mat = materials.get("door");
 
-    const doorWidth = 0.7;
+    const doorWidth = 1.0;
     const doorHeight = 2.0;
     const halfWidth = doorWidth / 2;
-
-    // Height of the bottom of the door
-    const bottom = 0;
-    const top = bottom + doorHeight;
-
-    // Front wall in z = 5 plane
-    const zFront = 5;
+    const zFront = 4.5;
 
     addQuadToGroup(door,
-        [-halfWidth, bottom, zFront],
-        [halfWidth, bottom, zFront],
-        [halfWidth, top, zFront],
-        [-halfWidth, top, zFront],
-        mat
+    [-halfWidth, -1.5, zFront],
+    [halfWidth, -1.5, zFront],
+    [halfWidth, 0.5, zFront],
+    [-halfWidth, 0.5, zFront],
+    mat
     );
 
     houseAlentejo.add(door);
-
-    createWindowDoor(x, y, z);
     createFrameDoor(x, y, z);
 }
 
 function createFrameWindows(x, y, z) {
     'use strict';
+    const mat = materials.get("frame");
 
-    const frameMat = materials.get("frame");
-    const thickness = 0.2;
-    const width = 1.0;
-    const height = 1.5;
+    const width = 1.5;
+    const height = 1.0;
+    const thickness = 0.25;
+
     const halfWidth = width / 2;
     const halfHeight = height / 2;
 
-    const yCenter = 0.25;
-    const yBottom = yCenter - halfHeight;
-    const yTop = yCenter + halfHeight;
-
-    const zFront = 5;
-    const xSide = 7.5;
+    const zCenter = 0;
+    const zBottom = zCenter - halfHeight;
+    const zTop = zCenter + halfHeight;
 
     const group = new THREE.Object3D();
 
     // Front wall windows
-    const xOffsetsFront = [-4.5, 4.5];
+    const yFront = 4.5;
+    const xCentersFront = [3, -3];
 
-    for (const xPos of xOffsetsFront) {
+    for (const xC of xCentersFront) {
+        const xLeft = xC - halfWidth;
+        const xRight = xC + halfWidth;
+
         // Left side
         addQuadToGroup(group,
-            [xPos - halfWidth - thickness, yBottom, zFront],
-            [xPos - halfWidth, yBottom, zFront],
-            [xPos - halfWidth, yTop, zFront],
-            [xPos - halfWidth - thickness, yTop, zFront],
-            frameMat
+            [xLeft - thickness, yFront, zBottom],
+            [xLeft, yFront, zBottom],
+            [xLeft, yFront, zTop],
+            [xLeft - thickness, yFront, zTop],
+            mat
         );
 
         // Right side
         addQuadToGroup(group,
-            [xPos + halfWidth, yBottom, zFront],
-            [xPos + halfWidth + thickness, yBottom, zFront],
-            [xPos + halfWidth + thickness, yTop, zFront],
-            [xPos + halfWidth, yTop, zFront],
-            frameMat
+            [xRight, yFront, zBottom],
+            [xRight + thickness, yFront, zBottom],
+            [xRight + thickness, yFront, zTop],
+            [xRight, yFront, zTop],
+            mat
         );
 
         // Top
         addQuadToGroup(group,
-            [xPos - halfWidth - thickness, yTop, zFront],
-            [xPos + halfWidth + thickness, yTop, zFront],
-            [xPos + halfWidth + thickness, yTop + thickness, zFront],
-            [xPos - halfWidth - thickness, yTop + thickness, zFront],
-            frameMat
+            [xLeft - thickness, yFront, zTop],
+            [xRight + thickness, yFront, zTop],
+            [xRight + thickness, yFront, zTop + thickness],
+            [xLeft - thickness, yFront, zTop + thickness],
+            mat
         );
 
         // Bottom
         addQuadToGroup(group,
-            [xPos - halfWidth - thickness, yBottom - thickness, zFront],
-            [xPos + halfWidth + thickness, yBottom - thickness, zFront],
-            [xPos + halfWidth + thickness, yBottom, zFront],
-            [xPos - halfWidth - thickness, yBottom, zFront],
-            frameMat
+            [xLeft - thickness, yFront, zBottom - thickness],
+            [xRight + thickness, yFront, zBottom - thickness],
+            [xRight + thickness, yFront, zBottom],
+            [xLeft - thickness, yFront, zBottom],
+            mat
         );
     }
 
-    // Left wall windows in x = 7.5 plane
-    const zOffsetsSide = [-3, 3];
-    for (const zPos of zOffsetsSide) {
-        // Left side
-        addQuadToGroup(group,
-            [xSide, yBottom, zPos - halfWidth - thickness],
-            [xSide, yBottom, zPos - halfWidth],
-            [xSide, yTop, zPos - halfWidth],
-            [xSide, yTop, zPos - halfWidth - thickness],
-            frameMat
-        );
+    // Left wall windows
+    const xSide = 5;
+    const yCentersSide = [2.25, -2.25];
+
+    for (const yC of yCentersSide) {
+        const yBottom = yC - halfWidth;
+        const yTop = yC + halfWidth;
 
         // Right side
         addQuadToGroup(group,
-            [xSide, yBottom, zPos + halfWidth],
-            [xSide, yBottom, zPos + halfWidth + thickness],
-            [xSide, yTop, zPos + halfWidth + thickness],
-            [xSide, yTop, zPos + halfWidth],
-            frameMat
+            [xSide, yBottom, zBottom - thickness],
+            [xSide, yBottom, zBottom],
+            [xSide, yTop, zBottom],
+            [xSide, yTop, zBottom - thickness],
+            mat
+        );
+
+        // Left side
+        addQuadToGroup(group,
+            [xSide, yBottom, zTop],
+            [xSide, yBottom, zTop + thickness],
+            [xSide, yTop, zTop + thickness],
+            [xSide, yTop, zTop],
+            mat
         );
 
         // Top
         addQuadToGroup(group,
-            [xSide, yTop, zPos - halfWidth - thickness],
-            [xSide, yTop, zPos + halfWidth + thickness],
-            [xSide, yTop + thickness, zPos + halfWidth + thickness],
-            [xSide, yTop + thickness, zPos - halfWidth - thickness],
-            frameMat
+            [xSide, yTop, zBottom - thickness],
+            [xSide, yTop, zTop + thickness],
+            [xSide, yTop + thickness, zTop + thickness],
+            [xSide, yTop + thickness, zBottom - thickness],
+            mat
         );
 
         // Bottom
         addQuadToGroup(group,
-            [xSide, yBottom - thickness, zPos - halfWidth - thickness],
-            [xSide, yBottom - thickness, zPos + halfWidth + thickness],
-            [xSide, yBottom, zPos + halfWidth + thickness],
-            [xSide, yBottom, zPos - halfWidth - thickness],
-            frameMat
+            [xSide, yBottom - thickness, zBottom - thickness],
+            [xSide, yBottom - thickness, zTop + thickness],
+            [xSide, yBottom, zTop + thickness],
+            [xSide, yBottom, zBottom - thickness],
+            mat
         );
     }
 
@@ -597,45 +559,43 @@ function createFrameWindows(x, y, z) {
 
 function createWindows(x, y, z) {
     'use strict';
+    const mat = materials.get("window");
 
-//  const mat = materials.get("window");
-    const mat = new THREE.MeshBasicMaterial({ color: bluecyan });
-
-    const width = 1.0;
-    const height = 1.5;
+    const width = 1.5;
+    const height = 1.0;
     const halfWidth = width / 2;
     const halfHeight = height / 2;
 
-    const yCenter = 0.25;
-    const yBottom = yCenter - halfHeight;
-    const yTop = yCenter + halfHeight;
-
-    const zFront = 5;
-    const xSide = 7.5;
+    const zCenter = 0;
+    const zBottom = zCenter - halfHeight;
+    const zTop = zCenter + halfHeight;
 
     const group = new THREE.Object3D();
 
     // Front wall windows
-    const xOffsetsFront = [-4.5, 4.5];
+    const yFront = 4.5;
+    const xCentersFront = [3, -3];
 
-    for (const xPos of xOffsetsFront) {
+    for (const xC of xCentersFront) {
         addQuadToGroup(group,
-            [xPos - halfWidth, yBottom, zFront],
-            [xPos + halfWidth, yBottom, zFront],
-            [xPos + halfWidth, yTop, zFront],
-            [xPos - halfWidth, yTop, zFront],
+            [xC - halfWidth, yFront, zBottom],
+            [xC + halfWidth, yFront, zBottom],
+            [xC + halfWidth, yFront, zTop],
+            [xC - halfWidth, yFront, zTop],
             mat
         );
     }
 
     // Left wall windows
-    const zOffsetsSide = [-3, 3];
-    for (const zPos of zOffsetsSide) {
+    const xSide = 5;
+    const yCentersSide = [2.25, -2.25];
+
+    for (const yC of yCentersSide) {
         addQuadToGroup(group,
-            [xSide, yBottom, zPos - halfWidth],
-            [xSide, yBottom, zPos + halfWidth],
-            [xSide, yTop, zPos + halfWidth],
-            [xSide, yTop, zPos - halfWidth],
+            [xSide, yC - halfWidth, zBottom],
+            [xSide, yC + halfWidth, zBottom],
+            [xSide, yC + halfWidth, zTop],
+            [xSide, yC - halfWidth, zTop],
             mat
         );
     }
@@ -645,53 +605,65 @@ function createWindows(x, y, z) {
 
 function createBaseTrim(x, y, z) {
     'use strict';
-
     const mat = materials.get("baseTrim");
     const group = new THREE.Object3D();
 
-    const houseWidth = 15;
-    const houseDepth = 10;
+    const houseWidth = 10;      // x = -5 to +5
+    const houseDepth = 9;       // z = -4.5 to +4.5
     const trimHeight = 0.5;
 
     const halfWidth = houseWidth / 2;
     const halfDepth = houseDepth / 2;
 
-    const yBottom = -2.5;
+    const yBottom = 0;
     const yTop = yBottom + trimHeight;
 
+    const doorHalfWidth = 0.5;
+    const frameThickness = 0.25;
+
     // Front wall trim
+    // Base trim of the left side of the front wall
     addQuadToGroup(group,
-        [-halfWidth, yBottom, +5],
-        [halfWidth, yBottom, +5],
-        [halfWidth, yTop, +5],
-        [-halfWidth, yTop, +5],
+        [-halfWidth, yBottom, 4.5],
+        [-doorHalfWidth - frameThickness, yBottom, 4.5],
+        [-doorHalfWidth - frameThickness, yTop, 4.5],
+        [-halfWidth, yTop, 4.5],
+        mat
+    );
+
+    // Base trim of the right side of the front wall
+    addQuadToGroup(group,
+        [doorHalfWidth + frameThickness, yBottom, 4.5],
+        [halfWidth, yBottom, 4.5],
+        [halfWidth, yTop, 4.5],
+        [doorHalfWidth + frameThickness, yTop, 4.5],
         mat
     );
 
     // Back wall trim
     addQuadToGroup(group,
-        [-halfWidth, yBottom, -5],
-        [halfWidth, yBottom, -5],
-        [halfWidth, yTop, -5],
-        [-halfWidth, yTop, -5],
-        mat
-    );
-
-    // Right side trim
-    addQuadToGroup(group,
-        [+7.5, yBottom, -halfDepth],
-        [+7.5, yBottom, +halfDepth],
-        [+7.5, yTop, +halfDepth],
-        [+7.5, yTop, -halfDepth],
+        [-halfWidth, yBottom, -4.5],
+        [halfWidth, yBottom, -4.5],
+        [halfWidth, yTop, -4.5],
+        [-halfWidth, yTop, -4.5],
         mat
     );
 
     // Left side trim
     addQuadToGroup(group,
-        [-7.5, yBottom, -halfDepth],
-        [-7.5, yBottom, +halfDepth],
-        [-7.5, yTop, +halfDepth],
-        [-7.5, yTop, -halfDepth],
+        [5, yBottom, -halfDepth],
+        [5, yBottom, halfDepth],
+        [5, yTop, halfDepth],
+        [5, yTop, -halfDepth],
+        mat
+    );
+
+    // Right side trim
+    addQuadToGroup(group,
+        [-5, yBottom, -halfDepth],
+        [-5, yBottom, halfDepth],
+        [-5, yTop, halfDepth],
+        [-5, yTop, -halfDepth],
         mat
     );
 
@@ -700,148 +672,62 @@ function createBaseTrim(x, y, z) {
 
 function createFrameHouse(x, y, z) {
     'use strict';
-
     const mat = materials.get("frame");
     const group = new THREE.Object3D();
 
-    const houseWidth = 15;
-    const houseDepth = 10;
-    const height = 5.0;
     const thickness = 0.5;
+    const yBottom = -1;
+    const yTop = 1.5;
 
-    const halfWidth = houseWidth / 2;
-    const halfDepth = houseDepth / 2;
+    // Corners Front Wall
+    addQuadToGroup(group, [4.5, yBottom, 4.5], [5, yBottom, 4.5], [5, yTop, 4.5], [4.5, yTop, 4.5], mat);
+    addQuadToGroup(group, [-5, yBottom, 4.5], [-4.5, yBottom, 4.5], [-4.5, yTop, 4.5], [-5, yTop, 4.5], mat);
 
-    const yBottom = -2.5;
-    const yTop = yBottom + height;
+    // Corners Back Wall
+    addQuadToGroup(group, [4.5, yBottom, -4.5], [5, yBottom, -4.5], [5, yTop, -4.5], [4.5, yTop, -4.5], mat);
+    addQuadToGroup(group, [-5, yBottom, -4.5], [-4.5, yBottom, -4.5], [-4.5, yTop, -4.5], [-5, yTop, -4.5], mat);
 
-    // Left front corner
-    addQuadToGroup(group,
-        [-halfWidth - thickness, yBottom, +5],
-        [-halfWidth, yBottom, +5],
-        [-halfWidth, yTop, +5],
-        [-halfWidth - thickness, yTop, +5],
-        mat
-    );
+    // Corners Left Wall
+    addQuadToGroup(group, [5, yBottom, 4], [5, yBottom, 4.5], [5, yTop, 4.5], [5, yTop, 4], mat);
+    addQuadToGroup(group, [5, yBottom, -4.5], [5, yBottom, -4], [5, yTop, -4], [5, yTop, -4.5], mat);
 
-    // Right front corner
-    addQuadToGroup(group,
-        [+halfWidth, yBottom, +5],
-        [+halfWidth + thickness, yBottom, +5],
-        [+halfWidth + thickness, yTop, +5],
-        [+halfWidth, yTop, +5],
-        mat
-    );
-
-    // Left back corner
-    addQuadToGroup(group,
-        [-halfWidth - thickness, yBottom, -5],
-        [-halfWidth, yBottom, -5],
-        [-halfWidth, yTop, -5],
-        [-halfWidth - thickness, yTop, -5],
-        mat
-    );
-
-    // Right back corner
-    addQuadToGroup(group,
-        [+halfWidth, yBottom, -5],
-        [+halfWidth + thickness, yBottom, -5],
-        [+halfWidth + thickness, yTop, -5],
-        [+halfWidth, yTop, -5],
-        mat
-    );
+    // Corners Right Wall
+    addQuadToGroup(group, [-5, yBottom, 4], [-5, yBottom, 4.5], [-5, yTop, 4.5], [-5, yTop, 4], mat);
+    addQuadToGroup(group, [-5, yBottom, -4.5], [-5, yBottom, -4], [-5, yTop, -4], [-5, yTop, -4.5], mat);
 
     houseAlentejo.add(group);
 }
 
 function createWalls(x, y, z) {
     'use strict';
-
-    console.log();
-
-    const mat = new THREE.MeshBasicMaterial({ color: white, side: THREE.DoubleSide });
-
+    const mat = materials.get("wall");
     const group = new THREE.Object3D();
 
-    const zFront = 5;
-    const yBottom = -2.5;
-    const yTop = 2.5;
-    const yWindowBottom = -0.5;
-    const yWindowTop = 1.0;
-    const doorLeft = -0.35;
-    const doorRight = 0.35;
+    // === Front Wall (z = 4.5) ===
+    const zFront = 4.5;
+    addQuadToGroup(group, [-4.5, 0.75, zFront], [4.5, 0.75, zFront], [4.5, 1.5, zFront], [-4.5, 1.5, zFront], mat);         // Above windows
+    addQuadToGroup(group, [-4.5, -1.0, zFront], [-4.0, -1.0, zFront], [-4.0, 1.5, zFront], [-4.5, 1.5, zFront], mat);       // Between framewindow and framehouse
+    addQuadToGroup(group, [4.0, -1.0, zFront], [4.5, -1.0, zFront], [4.5, 1.5, zFront], [4.0, 1.5, zFront], mat);           // Between framewindow and framehouse
+    addQuadToGroup(group, [-2.0, -1.0, zFront], [-0.75, -1.0, zFront], [-0.75, 0.75, zFront], [-2.0, 0.75, zFront], mat);   // Between framedoor and framewindow
+    addQuadToGroup(group, [0.75, -1.0, zFront], [2.0, -1.0, zFront], [2.0, 0.75, zFront], [0.75, 0.75, zFront], mat);       // Between framedoor and framewindow
+    addQuadToGroup(group, [-4.0, -1.0, zFront], [-2.0, -1.0, zFront], [-2.0, -0.75, zFront], [-4.0, -0.75, zFront], mat);   // Behind framewindow
+    addQuadToGroup(group, [2.0, -1.0, zFront], [4.0, -1.0, zFront], [4.0, -0.75, zFront], [2.0, -0.75, zFront], mat);       // Behind framewindow
 
-    // Block 1 - above the door
-    addQuadToGroup(group,
-        [doorLeft, yWindowTop, zFront],
-        [doorRight, yWindowTop, zFront],
-        [doorRight, yTop, zFront],
-        [doorLeft, yTop, zFront],
-        mat
-    );
+    // === Back Wall (z = -4.5) ===
+    const zBack = -4.5;
+    addQuadToGroup(group, [-4.5, -1.0, zBack], [4.5, -1.0, zBack], [4.5, 1.5, zBack], [-4.5, 1.5, zBack], mat);
 
-    // Bloch 2 – between door and left window
-    addQuadToGroup(group,
-        [-4.0, yBottom, zFront],
-        [doorLeft, yBottom, zFront],
-        [doorLeft, yTop, zFront],
-        [-4.0, yTop, zFront],
-        mat
-    );
+    // === Left Wall (x = 5) ===
+    const xLeft = 5;
+    addQuadToGroup(group, [xLeft, 0.75, -3.25], [xLeft, 0.75, 3.25], [xLeft, 1.5, 3.25], [xLeft, 1.5, -3.25], mat);         // Above windows
+    addQuadToGroup(group, [xLeft, -0.75, -1.25], [xLeft, -0.75, 1.25], [xLeft, 0.75, 1.25], [xLeft, 0.75, -1.25], mat);     // Between framewindow and framehouse
+    addQuadToGroup(group, [xLeft, -1.0, -3.25], [xLeft, -1.0, 3.25], [xLeft, -0.75, 3.25], [xLeft, -0.75, -3.25], mat);     // Behind windows
+    addQuadToGroup(group, [xLeft, -1.0, 3.25], [xLeft, -1.0, 4.0], [xLeft, 1.5, 4.0], [xLeft, 1.5, 3.25], mat);             // Between framewindow and framehouse
+    addQuadToGroup(group, [xLeft, -1.0, -4.0], [xLeft, -1.0, -3.25], [xLeft, 1.5, -3.25], [xLeft, 1.5, -4.0], mat);         // Between framewindow and framehouse
 
-    // Block 3 – between door and right window
-    addQuadToGroup(group,
-        [doorRight, yBottom, zFront],
-        [4.0, yBottom, zFront],
-        [4.0, yTop, zFront],
-        [doorRight, yTop, zFront],
-        mat
-    );
-
-    // Block 4 – below right window
-    addQuadToGroup(group,
-        [4.0, yBottom, zFront],
-        [5.0, yBottom, zFront],
-        [5.0, yWindowBottom, zFront],
-        [4.0, yWindowBottom, zFront],
-        mat
-    );
-
-    // Block 5 – below left window
-    addQuadToGroup(group,
-        [-5.0, yBottom, zFront],
-        [-4.0, yBottom, zFront],
-        [-4.0, yWindowBottom, zFront],
-        [-5.0, yWindowBottom, zFront],
-        mat
-    );
-
-    // Block 6 – left side of the front wall
-    addQuadToGroup(group,
-        [-7.5, yBottom, zFront],
-        [-5.0, yBottom, zFront],
-        [-5.0, yTop, zFront],
-        [-7.5, yTop, zFront],
-        mat
-    );
-
-    // Block 7 – right side of the front wall
-    addQuadToGroup(group,
-        [5.0, yBottom, zFront],
-        [7.5, yBottom, zFront],
-        [7.5, yTop, zFront],
-        [5.0, yTop, zFront],
-        mat
-    );
-
-    // Block 8 – top horizontal of the front wall
-    addQuadToGroup(group,
-        [-7.5, yTop, zFront],
-        [7.5, yTop, zFront],
-        [7.5, yTop + 0.2, zFront],
-        [-7.5, yTop + 0.2, zFront],
-        mat
-    );
+    // === Right Wall (x = -5) ===
+    const xRight = -5;
+    addQuadToGroup(group, [xRight, -1.0, -4.0], [xRight, -1.0, 4.0], [xRight, 1.5, 4.0], [xRight, 1.5, -4.0], mat);
 
     houseAlentejo.add(group);
 }
@@ -905,6 +791,8 @@ function init() {
     createScene();
     createCamera();
     createRenderer();
+    createMaterials();
+    createAlentejoHouse(0, 0, 0);
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
     window.addEventListener('resize', onResize);
@@ -986,5 +874,4 @@ function onKeyUp(e) {
 // #endregion
 
 init();
-
 animate();
