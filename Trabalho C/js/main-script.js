@@ -12,6 +12,11 @@ let scene, activeCamera, renderer;
 let globalDirectionalLight;
 let globalDirectionalLightOn = true;
 
+let  ovniGroup, ovniPointLights = [], ovniSpotLight;
+let ovniPointLightsOn = true, ovniSpotLightOn = true;
+let ovniMoving = { left: false, right: false, up: false, down: false };
+const OVNI_RADIUS = 5, OVNI_HEIGHT = 0.8, OVNI_SPEED = 0.3, OVNI_ROT_SPEED = 0.02;
+
 var cameras = []
 
 var moon, ovni, tree;
@@ -156,6 +161,7 @@ function createTerrainWithHeightmap() {
 
             groundPlane = new THREE.Mesh(geometry, material);
             groundPlane.rotation.x = -Math.PI / 2;
+            groundPlane.receiveShadow = true;
             scene.add(groundPlane);
         };
 
@@ -190,7 +196,7 @@ function createScene() {
     const ambient = new THREE.AmbientLight(0xffffff, 0.3);
     scene.add(ambient);
 
-    createMoon(3, 24, 16);
+    createMoon(20, 80, -30);
     scene.add(moon);
 
     globalDirectionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
@@ -198,6 +204,8 @@ function createScene() {
     globalDirectionalLight.target.position.set(0, 0, 0);
     scene.add(globalDirectionalLight);
     scene.add(globalDirectionalLight.target);
+
+    createOvni(50, 50, 50);
     
 }
 // #endregion
@@ -318,6 +326,116 @@ function updateShadeCalculation() {
 ////////////////////////
 /* CREATE OBJECT3D(S) */
 ////////////////////////
+
+
+// Creation of a sphere using BufferGeometry
+function createSphereGeometry(radius, widthSegments, heightSegments) {
+    const geometry = new THREE.BufferGeometry();
+    const vertices = [];
+    const indices = [];
+    const uvs = [];
+    for (let y = 0; y <= heightSegments; y++) {
+        const v = y / heightSegments;
+        const theta = v * Math.PI;
+        for (let x = 0; x <= widthSegments; x++) {
+            const u = x / widthSegments;
+            const phi = u * Math.PI * 2;
+            const px = radius * Math.cos(phi) * Math.sin(theta);
+            const py = radius * Math.cos(theta);
+            const pz = radius * Math.sin(phi) * Math.sin(theta);
+            vertices.push(px, py, pz);
+            uvs.push(u, v);
+        }
+    }
+    for (let y = 0; y < heightSegments; y++) {
+        for (let x = 0; x < widthSegments; x++) {
+            const a = y * (widthSegments + 1) + x;
+            const b = a + widthSegments + 1;
+            const c = b + 1;
+            const d = a + 1;
+            indices.push(a, b, d);
+            indices.push(b, c, d);
+        }
+    }
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    geometry.setIndex(indices);
+    geometry.computeVertexNormals();
+    return geometry;
+}
+
+//  Create spherical cap using BufferGeometry
+function createSphericalCapGeometry(radius, widthSegments, heightSegments, phiLength) {
+    const geometry = new THREE.BufferGeometry();
+    const vertices = [];
+    const indices = [];
+    const uvs = [];
+    for (let y = 0; y <= heightSegments; y++) {
+        const v = y / heightSegments;
+        const theta = v * phiLength;
+        for (let x = 0; x <= widthSegments; x++) {
+            const u = x / widthSegments;
+            const phi = u * Math.PI * 2;
+            const px = radius * Math.cos(phi) * Math.sin(theta);
+            const py = radius * Math.cos(theta);
+            const pz = radius * Math.sin(phi) * Math.sin(theta);
+            vertices.push(px, py, pz);
+            uvs.push(u, v);
+        }
+    }
+    for (let y = 0; y < heightSegments; y++) {
+        for (let x = 0; x < widthSegments; x++) {
+            const a = y * (widthSegments + 1) + x;
+            const b = a + widthSegments + 1;
+            const c = b + 1;
+            const d = a + 1;
+            indices.push(a, b, d);
+            indices.push(b, c, d);
+        }
+    }
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    geometry.setIndex(indices);
+    geometry.computeVertexNormals();
+    return geometry;
+}
+
+// Create a cylinder for the bottom part of the ovni using BufferGeometry
+function createCylinderGeometry(radius, height, radialSegments) {
+    const geometry = new THREE.BufferGeometry();
+    const vertices = [];
+    const indices = [];
+    // Top circle
+    for (let i = 0; i < radialSegments; i++) {
+        const angle = (i / radialSegments) * Math.PI * 2;
+        vertices.push(
+            Math.cos(angle) * radius,
+            height / 2,
+            Math.sin(angle) * radius
+        );
+    }
+    // Bottom circle
+    for (let i = 0; i < radialSegments; i++) {
+        const angle = (i / radialSegments) * Math.PI * 2;
+        vertices.push(
+            Math.cos(angle) * radius,
+            -height / 2,
+            Math.sin(angle) * radius
+        );
+    }
+    // lateral faces
+    for (let i = 0; i < radialSegments; i++) {
+        const next = (i + 1) % radialSegments;
+        indices.push(i, next, radialSegments + i);
+        indices.push(next, radialSegments + next, radialSegments + i);
+    }
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    geometry.setIndex(indices);
+    geometry.computeVertexNormals();
+    return geometry;
+}
+
+
 function createFlowers() {
     'use strict';
     // TO DO: Create flowers as Object3D(IF needed)
@@ -354,67 +472,113 @@ function createTree() {
     // Leaves
 }
 
-function createMoon(radius, widthSegments, heightSegments) {
+function createMoon(x, y, z) {
     'use strict';
     // Create an empty geometry
-    const geometry = new THREE.BufferGeometry();
-    const vertices = [];
-    const indices = [];
-    const uvs = [];
-
-    // Generate vertices
-    for (let y = 0; y <= heightSegments; y++) {
-        const v = y / heightSegments;
-        const theta = v * Math.PI;
-        for (let x = 0; x <= widthSegments; x++) {
-            const u = x / widthSegments;
-            const phi = u * Math.PI * 2;
-
-            const px = -radius * Math.cos(phi) * Math.sin(theta);
-            const py =  radius * Math.cos(theta);
-            const pz =  radius * Math.sin(phi) * Math.sin(theta);
-
-            vertices.push(px, py, pz);
-            uvs.push(u, v);
-        }
-    }
-
-    // Generate faces (indices)
-    for (let y = 0; y < heightSegments; y++) {
-        for (let x = 0; x < widthSegments; x++) {
-            const a = y * (widthSegments + 1) + x;
-            const b = a + widthSegments + 1;
-            const c = b + 1;
-            const d = a + 1;
-
-            // Each quad is made of two triangles
-            indices.push(a, b, d);
-            indices.push(b, c, d);
-        }
-    }
-
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-    geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-    geometry.setIndex(indices);
-    geometry.computeVertexNormals();
-
-    
+    const radius = 3;
+    const widthSegments = 24;
+    const heightSegments = 16;
+    const geometry = createSphereGeometry(radius, widthSegments, heightSegments);
     const material = new THREE.MeshPhongMaterial({ color: moonYellow, emissive: moonYellow });
-
     const moonMesh = new THREE.Mesh(geometry, material);
-    moonMesh.position.set(20, 30, -30); // Position it in the sky
+    moonMesh.position.set(x, y, z); // Position it in the sky
 
     moon = moonMesh;
 }
 
-function createOvniLights() {
-    'use strict';
-    // TO DO: Create ovni lights as Object3D
+// Cria as luzes do OVNI (chamada dentro de createOvni)
+function createOvniLights(group, nLuzes, rLuzes, yLuz) {
+    ovniPointLights = [];
+    for (let i = 0; i < nLuzes; i++) {
+        const angle = (i / nLuzes) * Math.PI * 2;
+        const lx = Math.cos(angle) * rLuzes;
+        const lz = Math.sin(angle) * rLuzes;
+        // Pequena esfera
+        const sphereGeo = new THREE.BufferGeometry();
+        const sphereVerts = [];
+        for (let j = 0; j <= 8; j++) {
+            const v = j / 8;
+            const theta = v * Math.PI;
+            for (let k = 0; k <= 8; k++) {
+                const u = k / 8;
+                const phi = u * Math.PI * 2;
+                sphereVerts.push(
+                    lx + 0.2 * Math.cos(phi) * Math.sin(theta),
+                    yLuz + 0.2 * Math.cos(theta),
+                    lz + 0.2 * Math.sin(phi) * Math.sin(theta)
+                );
+            }
+        }
+        // Faces da esfera pequena
+        const sphereIndices = [];
+        for (let j = 0; j < 8; j++) {
+            for (let k = 0; k < 8; k++) {
+                const a = j * 9 + k;
+                const b = a + 9;
+                const c = b + 1;
+                const d = a + 1;
+                sphereIndices.push(a, b, d);
+                sphereIndices.push(b, c, d);
+            }
+        }
+        sphereGeo.setAttribute('position', new THREE.Float32BufferAttribute(sphereVerts, 3));
+        sphereGeo.setIndex(sphereIndices);
+        sphereGeo.computeVertexNormals();
+        const sphereMat = new THREE.MeshPhongMaterial({ color: 0xff0000, emissive: 0xff0000 });
+        const sphereMesh = new THREE.Mesh(sphereGeo, sphereMat);
+        group.add(sphereMesh);
+
+        // Luz pontual
+        const pointLight = new THREE.PointLight(0xff0000, 1, 10);
+        pointLight.position.set(lx, yLuz, lz);
+        group.add(pointLight);
+        ovniPointLights.push(pointLight);
+
+    }
+
+    // Cylinder for the OVNI bottom part
+    const cylHeight = 0.2; // Height of the cylinder
+    const cylGeo = createCylinderGeometry(0.5, cylHeight, 16);
+    const cylMat = new THREE.MeshPhongMaterial({ color: 0xffff00, emissive: 0xffff00 });
+    const cylMesh = new THREE.Mesh(cylGeo, cylMat);
+    group.add(cylMesh);
+
+    // Spotlight
+    ovniSpotLight = new THREE.SpotLight(0xffffff, 2, 40, Math.PI / 6, 0.5, 1);
+    ovniSpotLight.position.set(0, -OVNI_HEIGHT - cylHeight, 0);
+    ovniSpotLight.target.position.set(0, -OVNI_HEIGHT - cylHeight - 5, 0);
+    ovniGroup.add(ovniSpotLight);
+    ovniGroup.add(ovniSpotLight.target);
+    ovniSpotLight.castShadow = true;
 }
 
+// Cria o OVNI manualmente
 function createOvni(x, y, z) {
     'use strict';
-    // TO DO: Create ovni as Object3D
+    ovniGroup = new THREE.Group();
+
+    // "Main" body for the OVNI
+    const corpoGeo = createSphereGeometry(OVNI_RADIUS, 32, 16);
+    const corpoMat = new THREE.MeshPhongMaterial({ color: 0x888888, shininess: 100 });
+    const corpoMesh = new THREE.Mesh(corpoGeo, corpoMat);
+    corpoMesh.scale.y = OVNI_HEIGHT / OVNI_RADIUS; // Squash the sphere
+    ovniGroup.add(corpoMesh);
+
+    // Cockpit
+    const cockpitGeo = createSphericalCapGeometry(OVNI_RADIUS * 0.6, 24, 12, Math.PI / 2);
+    const cockpitMat = new THREE.MeshPhongMaterial({ color: 0x99ccff, transparent: true, opacity: 0.7 });
+    const cockpitMesh = new THREE.Mesh(cockpitGeo, cockpitMat);
+    cockpitMesh.position.y = OVNI_HEIGHT * 0.7;
+    ovniGroup.add(cockpitMesh);
+
+    
+    createOvniLights(ovniGroup, 8, OVNI_RADIUS * 0.8, -OVNI_HEIGHT * 0.8);
+
+
+    ovniGroup.position.set(x, y, z);
+    scene.add(ovniGroup);
+    ovni = ovniGroup;
+    ovni.castShadow = true;
 }
 
 // Auxiliar function to create a section with color
@@ -821,7 +985,21 @@ function handleCollisions() {}
 ////////////
 /* UPDATE */
 ////////////
-function update() {}
+function update() {
+    if (ovni) {
+        // constate rotation speed and movement speed
+        ovni.rotation.y += OVNI_ROT_SPEED;
+
+        // horizontal movement
+        let dx = 0, dz = 0;
+        if (ovniMoving.left) dx -= OVNI_SPEED;
+        if (ovniMoving.right) dx += OVNI_SPEED;
+        if (ovniMoving.up) dz -= OVNI_SPEED;
+        if (ovniMoving.down) dz += OVNI_SPEED;
+        ovni.position.x += dx;
+        ovni.position.z += dz;
+    }
+}
 // #endregion
 
 // #region DISPLAY
@@ -858,6 +1036,7 @@ function init() {
 /////////////////////
 function render() {
     renderer.render(scene, activeCamera);
+    renderer.shadowMap.enabled = true;
 }
 
 function animate() {
@@ -889,8 +1068,8 @@ function onResize() {
 ///////////////////////
 function onKeyDown(e) {
     'use strict';
-    switch (e.keyCode) {
-        case 49: // key '1'
+    switch (e.key) {
+        case '1':
             generateGroundTexture = true;
             const newTexture = generateFloralTexture();
             newTexture.wrapS = THREE.RepeatWrapping;
@@ -900,7 +1079,7 @@ function onKeyDown(e) {
             groundPlane.material.needsUpdate = true;
             break;
 
-        case 50: // key '2'
+        case '2': 
             generateSkyTexture = true;
             skyDome.material.map = generateStarryTexture();
             texture.wrapS = THREE.RepeatWrapping;
@@ -908,6 +1087,29 @@ function onKeyDown(e) {
             texture.repeat.set(25, 50); 
             
             skyDome.material.needsUpdate = true;
+            break;
+
+        case 'p':
+        case 'P':
+            ovniPointLightsOn = !ovniPointLightsOn;
+            ovniPointLights.forEach(l => l.visible = ovniPointLightsOn);
+            break;
+        case 's':
+        case 'S':
+            ovniSpotLightOn = !ovniSpotLightOn;
+            if (ovniSpotLight) ovniSpotLight.visible = ovniSpotLightOn;
+            break;
+        case 'ArrowLeft':
+            ovniMoving.left = true; 
+            break;
+        case 'ArrowRight':
+            ovniMoving.right = true; 
+            break;
+        case 'ArrowUp':
+            ovniMoving.up = true; 
+            break;
+        case 'ArrowDown':
+            ovniMoving.down = true; 
             break;
     }
 }
@@ -919,12 +1121,24 @@ function onKeyDown(e) {
 ///////////////////////
 function onKeyUp(e) {
     'use strict';
-    switch (e.keyCode) {
-        case 49: // key '1'
+    switch (e.key) {
+        case '1': 
             generateGroundTexture = false;
             break;
-        case 50: // key '2'
+        case '2':
             generateSkyTexture = false;
+            break;
+        case 'ArrowLeft':
+            ovniMoving.left = false; 
+            break;
+        case 'ArrowRight':
+            ovniMoving.right = false; 
+            break;
+        case 'ArrowUp':
+            ovniMoving.up = false; 
+            break;
+        case 'ArrowDown':
+            ovniMoving.down = false; 
             break;
     }
 }
