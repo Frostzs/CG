@@ -56,10 +56,10 @@ function generateFloralTexture() {
     ctx.fillRect(0, 0, canvasSize, canvasSize);
 
     const colors = ['white', 'yellow', 'violet', 'lightblue'];
-    for (let i = 0; i < 500; i++) {
+    for (let i = 0; i < 50; i++) {
         const x = Math.random() * canvasSize;
         const y = Math.random() * canvasSize;
-        const r = 0.5 + Math.random() * 1.5;
+        const r = 1 + Math.random() * 2;
         ctx.beginPath();
         ctx.arc(x, y, r, 0, Math.PI * 2);
         ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
@@ -110,6 +110,62 @@ function generateStarryTexture() {
     return new THREE.CanvasTexture(canvas);
 }
 
+function createTerrainWithHeightmap() {
+    const loader = new THREE.TextureLoader();
+    loader.load('heightmap.png', function(heightmap) {
+        const img = heightmap.image;
+
+        // Espera a imagem carregar completamente
+        img.onload = () => {
+            const width = img.width;
+            const height = img.height;
+
+            const geometry = new THREE.PlaneGeometry(500, 700, width , height ); // largura 2x maior que altura
+
+
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = width;
+            canvas.height = height;
+            context.drawImage(img, 0, 0);
+            const pixelData = context.getImageData(0, 0, width, height).data;
+
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const vertexIndex = y * width + x;
+                    const pixelIndex = (y * width + x) * 4;
+                    const elevation = pixelData[pixelIndex] / 255 * 35; // escalar a altura
+
+                    geometry.attributes.position.setZ(vertexIndex, elevation);
+                }
+            }
+
+            geometry.computeVertexNormals();
+
+            const texture = generateFloralTexture();
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(25, 50); 
+
+            const material = new THREE.MeshPhongMaterial({
+                map: texture,
+                flatShading: false,
+                side: THREE.DoubleSide,
+            });
+
+
+            groundPlane = new THREE.Mesh(geometry, material);
+            groundPlane.rotation.x = -Math.PI / 2;
+            scene.add(groundPlane);
+        };
+
+        // Caso a imagem já esteja carregada (às vezes o `onload` não dispara)
+        if (img.complete && img.naturalWidth !== 0) {
+            img.onload(); 
+        }
+    });
+}
+
 
 // #region CREATE SCENE(S)
 /////////////////////
@@ -119,11 +175,7 @@ function createScene() {
     'use strict';
     scene = new THREE.Scene();
 
-    const groundGeo = new THREE.PlaneGeometry(100, 100);
-    const groundMat = new THREE.MeshBasicMaterial({ color: 0xffffff,map: generateFloralTexture() });
-    groundPlane = new THREE.Mesh(groundGeo, groundMat);
-    groundPlane.rotation.x = -Math.PI / 2;
-    scene.add(groundPlane);
+    createTerrainWithHeightmap();
 
     const skyGeo = new THREE.SphereGeometry(100, 32, 32);
     const skyMat = new THREE.MeshBasicMaterial({
@@ -157,8 +209,8 @@ function createScene() {
 function createCamera() {
      const aspect = window.innerWidth / window.innerHeight;
     const pers = new THREE.PerspectiveCamera(75, aspect, 0.1, 500);
-    pers.position.set(0, 50, 50);
-    pers.lookAt(0, 10, 10);
+    pers.position.set(0, 40, 100);
+    pers.lookAt(0, 30, 10);
 
     cameras = {
         perspective: pers
@@ -840,17 +892,22 @@ function onKeyDown(e) {
     switch (e.keyCode) {
         case 49: // key '1'
             generateGroundTexture = true;
-            groundPlane.material.map = generateFloralTexture();
+            const newTexture = generateFloralTexture();
+            newTexture.wrapS = THREE.RepeatWrapping;
+            newTexture.wrapT = THREE.RepeatWrapping;
+            newTexture.repeat.set(25, 30);
+            groundPlane.material.map = newTexture;
             groundPlane.material.needsUpdate = true;
             break;
+
         case 50: // key '2'
             generateSkyTexture = true;
             skyDome.material.map = generateStarryTexture();
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(25, 50); 
+            
             skyDome.material.needsUpdate = true;
-            break;
-        case 68: // key 'D' or 'd'
-            globalDirectionalLightOn = !globalDirectionalLightOn;
-            globalDirectionalLight.visible = globalDirectionalLightOn;
             break;
     }
 }
