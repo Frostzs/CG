@@ -1,4 +1,7 @@
 import * as THREE from "three";
+import { VRButton } from './VRButton.js';
+import { OrbitControls } from './OrbitControls.js';
+
 
 //////////////////////
 /* GLOBAL VARIABLES */
@@ -21,8 +24,9 @@ var cameras = []
 
 var moon, ovni, tree;
 let houseAlentejo
+var controls;
 // var skydome, terrain;
-
+var groundTexture, skyTexture;
 var treePos = [], trees = [];
 
 /*
@@ -52,6 +56,7 @@ const black = 0xffffff;
 const bluecyan = 0xB0E0E6;
 const darkGreen = 0x013220;
 const brownOrange = 0xcc5500;
+const lightGreen = '#0b3d0b';
 
 
 function generateFloralTexture() {
@@ -59,14 +64,14 @@ function generateFloralTexture() {
     canvas.width = canvas.height = canvasSize;
     const ctx = canvas.getContext('2d');
 
-    ctx.fillStyle = '#0b3d0b'; // light green
+    ctx.fillStyle = lightGreen;
     ctx.fillRect(0, 0, canvasSize, canvasSize);
 
     const colors = ['white', 'yellow', 'violet', 'lightblue'];
-    for (let i = 0; i < 50; i++) {
+    for (let i = 0; i < 200; i++) {
         const x = Math.random() * canvasSize;
         const y = Math.random() * canvasSize;
-        const r = 1 + Math.random() * 2;
+        const r = 1.6 + Math.random() * 1.5; 
         ctx.beginPath();
         ctx.arc(x, y, r, 0, Math.PI * 2);
         ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
@@ -127,7 +132,7 @@ function createTerrainWithHeightmap() {
             const width = img.width;
             const height = img.height;
 
-            const geometry = new THREE.PlaneGeometry(500, 700, width , height ); // largura 2x maior que altura
+            const geometry = new THREE.PlaneGeometry(100, 100, width , height ); 
 
 
             const canvas = document.createElement('canvas');
@@ -141,7 +146,7 @@ function createTerrainWithHeightmap() {
                 for (let x = 0; x < width; x++) {
                     const vertexIndex = y * width + x;
                     const pixelIndex = (y * width + x) * 4;
-                    const elevation = pixelData[pixelIndex] / 255 * 20; // escalar a altura
+                    const elevation = pixelData[pixelIndex] / 225 * 3; // escalar a altura
 
                     geometry.attributes.position.setZ(vertexIndex, elevation);
                 }
@@ -163,6 +168,8 @@ function createTerrainWithHeightmap() {
 
             groundPlane = new THREE.Mesh(geometry, material);
             groundPlane.rotation.x = -Math.PI / 2;
+            groundPlane.position.set(0, 25, 30);
+
             groundPlane.receiveShadow = true;
             scene.add(groundPlane);
             const houseX = -25;
@@ -214,7 +221,6 @@ function getGroundHeightAt(xTarget, zTarget) {
 function createScene() {
     'use strict';
     scene = new THREE.Scene();
-
     createTerrainWithHeightmap();
 
     const skyGeo = new THREE.SphereGeometry(100, 32, 32);
@@ -250,14 +256,13 @@ function createScene() {
 //////////////////////
 function createCamera() {
      const aspect = window.innerWidth / window.innerHeight;
-    const pers = new THREE.PerspectiveCamera(75, aspect, 0.1, 500);
-    pers.position.set(0, 40, 100);
-//    pers.position.set(-20, 10, 70); // to test things without forget the main one
-pers.lookAt(0, 30, 10);
-//pers.lookAt(-18, 12, 60); // // to test things without forget the main one
-    cameras = {
-        perspective: pers
-    };
+    const pers = new THREE.PerspectiveCamera(60, aspect, 0.1, 500);
+    pers.position.set(20, 60, 80);  // X=80 (right), Y=60 (top), Z=80 (front-right)
+    pers.lookAt(0, 0, 0);           // Look toward the center of the scene
+
+        cameras = {
+            perspective: pers
+        };
 
     activeCamera = cameras.perspective;
 }
@@ -319,7 +324,7 @@ function createPhongMaterials() {
     // TO DO: Create Phong materials for objects
     // TO DO Rodrigo: from my parts
 }
-
+ 
 function createBasicMaterials() {
     'use strict';
     materialsBasic.set("wall", new THREE.MeshLambertMaterial({ color: white }));
@@ -1138,6 +1143,8 @@ function update() {
         ovni.position.x += dx;
         ovni.position.z += dz;
     }
+    if (controls) controls.update();
+
 }
 // #endregion
 
@@ -1161,11 +1168,23 @@ function init() {
     createCamera();
     createRenderer();
     createMaterials();
+
+    renderer.xr.enabled = true;
+    document.body.appendChild(VRButton.createButton(renderer));
+
+    renderer.setAnimationLoop(function () {
+     renderer.render(scene, activeCamera);
+    });
+
+    // OrbitControls
+    controls = new OrbitControls(activeCamera, renderer.domElement);
+
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
     window.addEventListener('resize', onResize);
 
 }
+
 // #endregion
 
 // #region ANIMATION CYCLE
@@ -1184,6 +1203,7 @@ function animate() {
     
     requestAnimationFrame(animate);
 }
+
 // #endregion
 
 // #region RESIZE WINDOW
