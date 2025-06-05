@@ -141,7 +141,7 @@ function createTerrainWithHeightmap() {
                 for (let x = 0; x < width; x++) {
                     const vertexIndex = y * width + x;
                     const pixelIndex = (y * width + x) * 4;
-                    const elevation = pixelData[pixelIndex] / 255 * 35; // escalar a altura
+                    const elevation = pixelData[pixelIndex] / 255 * 20; // escalar a altura
 
                     geometry.attributes.position.setZ(vertexIndex, elevation);
                 }
