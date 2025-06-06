@@ -220,6 +220,20 @@ function addQuadToGroup(group, p1, p2, p3, p4, material) {
   geometry.computeVertexNormals();
 
   const mesh = new THREE.Mesh(geometry, material);
+  // Set materialType if possible
+  if (material === materials.get("wall") || material === materialsLambert.get("wall") || material === materialsPhong.get("wall") || material === materialsToon.get("wall")) {
+      mesh.userData.materialType = "wall";
+  } else if (material === materials.get("window") || material === materialsLambert.get("window") || material === materialsPhong.get("window") || material === materialsToon.get("window")) {
+      mesh.userData.materialType = "window";
+  } else if (material === materials.get("door") || material === materialsLambert.get("door") || material === materialsPhong.get("door") || material === materialsToon.get("door")) {
+      mesh.userData.materialType = "door";
+  } else if (material === materials.get("frame") || material === materialsLambert.get("frame") || material === materialsPhong.get("frame") || material === materialsToon.get("frame")) {
+      mesh.userData.materialType = "frame";
+  } else if (material === materials.get("baseTrim") || material === materialsLambert.get("baseTrim") || material === materialsPhong.get("baseTrim") || material === materialsToon.get("baseTrim")) {
+      mesh.userData.materialType = "baseTrim";
+  } else if (material === materials.get("ceiling") || material === materialsLambert.get("ceiling") || material === materialsPhong.get("ceiling") || material === materialsToon.get("ceiling")) {
+      mesh.userData.materialType = "ceiling";
+  }
   group.add(mesh);
 }
 
@@ -232,6 +246,12 @@ function addTriangleToGroup(group, p1, p2, p3, material) {
     geometry.computeVertexNormals();
 
     const mesh = new THREE.Mesh(geometry, material);
+    // Set materialType if possible (same logic as above)
+    if (material === materials.get("wall") || material === materialsLambert.get("wall") || material === materialsPhong.get("wall") || material === materialsToon.get("wall")) {
+        mesh.userData.materialType = "wall";
+    } else if (material === materials.get("ceiling") || material === materialsLambert.get("ceiling") || material === materialsPhong.get("ceiling") || material === materialsToon.get("ceiling")) {
+        mesh.userData.materialType = "ceiling";
+    }
     group.add(mesh);
 }
 
@@ -272,7 +292,7 @@ function createScene() {
     const ambient = new THREE.AmbientLight(0xffffff, 0.3);
     scene.add(ambient);
 
-    createMoon(20, 80, -30);
+    createMoon(30, 60, -10);
     scene.add(moon);
 
     globalDirectionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
@@ -281,7 +301,7 @@ function createScene() {
     scene.add(globalDirectionalLight);
     scene.add(globalDirectionalLight.target);
 
-    createOvni(50, 50, 50);
+    createOvni(30, 50, 50);
     
 }
 // #endregion
@@ -326,77 +346,81 @@ function createMaterials() {
 
 function createToonMaterials() {
     'use strict';
-    materialsToon.set("wall", new THREE.MeshLambertMaterial({ color: white }));
-    materialsToon.set("window", new THREE.MeshLambertMaterial({ color: bluecyan }));
-    materialsToon.set("door", new THREE.MeshLambertMaterial({ color: brown }));
-    materialsToon.set("frame", new THREE.MeshLambertMaterial({ color: yellow }));
-    materialsToon.set("baseTrim", new THREE.MeshLambertMaterial({ color: yellow }));
-    materialsToon.set("ceiling", new THREE.MeshLambertMaterial({ color: tileOrange }));
-    materialsPhong.set("treeTrunk", new THREE.MeshPhongMaterial({ color: brownOrange }));
-    materialsPhong.set("treeLeaves", new THREE.MeshPhongMaterial({ color: darkGreen }));
+    materialsToon.set("wall", new THREE.MeshToonMaterial({ color: white, side: THREE.DoubleSide }));
+    materialsToon.set("window", new THREE.MeshToonMaterial({ color: bluecyan, side: THREE.DoubleSide }));
+    materialsToon.set("door", new THREE.MeshToonMaterial({ color: brown, side: THREE.DoubleSide }));
+    materialsToon.set("frame", new THREE.MeshToonMaterial({ color: yellow, side: THREE.DoubleSide }));
+    materialsToon.set("baseTrim", new THREE.MeshToonMaterial({ color: yellow, side: THREE.DoubleSide }));
+    materialsToon.set("ceiling", new THREE.MeshToonMaterial({ color: tileOrange, side: THREE.DoubleSide }));
+    materialsToon.set("treeTrunk", new THREE.MeshToonMaterial({ color: brownOrange, side: THREE.DoubleSide }));
+    materialsToon.set("treeLeaves", new THREE.MeshToonMaterial({ color: darkGreen, side: THREE.DoubleSide }));
+    materialsToon.set("ovniBody", new THREE.MeshToonMaterial({ color: 0x888888, side: THREE.DoubleSide }));
+    materialsToon.set("ovniCockpit", new THREE.MeshToonMaterial({ color: 0x99ccff, transparent: true, opacity: 0.7, side: THREE.DoubleSide }));
+    materialsToon.set("ovniLight", new THREE.MeshToonMaterial({ color: 0xff0000, side: THREE.DoubleSide }));
+    materialsToon.set("ovniCylinder", new THREE.MeshToonMaterial({ color: 0xffff00, side: THREE.DoubleSide }));
+    materialsToon.set("moon", new THREE.MeshToonMaterial({ color: moonYellow, side: THREE.DoubleSide }));
 }
 
 function createLambertMaterials() {
     'use strict';
-    materialsLambert.set("wall", new THREE.MeshLambertMaterial({ color: white }));
-    materialsLambert.set("window", new THREE.MeshLambertMaterial({ color: bluecyan }));
-    materialsLambert.set("door", new THREE.MeshLambertMaterial({ color: brown }));
-    materialsLambert.set("frame", new THREE.MeshLambertMaterial({ color: yellow }));
-    materialsLambert.set("baseTrim", new THREE.MeshLambertMaterial({ color: yellow }));
-    materialsLambert.set("ceiling", new THREE.MeshLambertMaterial({ color: tileOrange }));
-    materialsPhong.set("treeTrunk", new THREE.MeshPhongMaterial({ color: brownOrange }));
-    materialsPhong.set("treeLeaves", new THREE.MeshPhongMaterial({ color: darkGreen }));
+    materialsLambert.set("wall", new THREE.MeshLambertMaterial({ color: white, side: THREE.DoubleSide }));
+    materialsLambert.set("window", new THREE.MeshLambertMaterial({ color: bluecyan, side: THREE.DoubleSide }));
+    materialsLambert.set("door", new THREE.MeshLambertMaterial({ color: brown, side: THREE.DoubleSide }));
+    materialsLambert.set("frame", new THREE.MeshLambertMaterial({ color: yellow, side: THREE.DoubleSide }));
+    materialsLambert.set("baseTrim", new THREE.MeshLambertMaterial({ color: yellow, side: THREE.DoubleSide }));
+    materialsLambert.set("ceiling", new THREE.MeshLambertMaterial({ color: tileOrange, side: THREE.DoubleSide }));
+    materialsLambert.set("treeTrunk", new THREE.MeshLambertMaterial({ color: brownOrange, side: THREE.DoubleSide }));
+    materialsLambert.set("treeLeaves", new THREE.MeshLambertMaterial({ color: darkGreen, side: THREE.DoubleSide }));
+    materialsLambert.set("ovniBody", new THREE.MeshLambertMaterial({ color: 0x888888, side: THREE.DoubleSide }));
+    materialsLambert.set("ovniCockpit", new THREE.MeshLambertMaterial({ color: 0x99ccff, transparent: true, opacity: 0.7, side: THREE.DoubleSide }));
+    materialsLambert.set("ovniLight", new THREE.MeshLambertMaterial({ color: 0xff0000, emissive: 0xff0000, side: THREE.DoubleSide }));
+    materialsLambert.set("ovniCylinder", new THREE.MeshLambertMaterial({ color: 0xffff00, emissive: 0xffff00, side: THREE.DoubleSide }));
+    materialsLambert.set("moon", new THREE.MeshLambertMaterial({ color: moonYellow, emissive: moonYellow, emissiveIntensity: 2, side: THREE.DoubleSide }));
 }
 
 function createPhongMaterials() {
     'use strict';
-    materialsPhong.set("wall", new THREE.MeshLambertMaterial({ color: white }));
-    materialsPhong.set("window", new THREE.MeshLambertMaterial({ color: bluecyan }));
-    materialsPhong.set("door", new THREE.MeshLambertMaterial({ color: brown }));
-    materialsPhong.set("frame", new THREE.MeshLambertMaterial({ color: yellow }));
-    materialsPhong.set("baseTrim", new THREE.MeshLambertMaterial({ color: yellow }));
-    materialsPhong.set("ceiling", new THREE.MeshLambertMaterial({ color: tileOrange }));
-    materialsPhong.set("treeTrunk", new THREE.MeshPhongMaterial({ color: brownOrange }));
-    materialsPhong.set("treeLeaves", new THREE.MeshPhongMaterial({ color: darkGreen }));
+    materialsPhong.set("wall", new THREE.MeshPhongMaterial({ color: white, side: THREE.DoubleSide }));
+    materialsPhong.set("window", new THREE.MeshPhongMaterial({ color: bluecyan, side: THREE.DoubleSide }));
+    materialsPhong.set("door", new THREE.MeshPhongMaterial({ color: brown, side: THREE.DoubleSide }));
+    materialsPhong.set("frame", new THREE.MeshPhongMaterial({ color: yellow, side: THREE.DoubleSide }));
+    materialsPhong.set("baseTrim", new THREE.MeshPhongMaterial({ color: yellow, side: THREE.DoubleSide }));
+    materialsPhong.set("ceiling", new THREE.MeshPhongMaterial({ color: tileOrange, side: THREE.DoubleSide }));
+    materialsPhong.set("treeTrunk", new THREE.MeshPhongMaterial({ color: brownOrange, side: THREE.DoubleSide }));
+    materialsPhong.set("treeLeaves", new THREE.MeshPhongMaterial({ color: darkGreen, side: THREE.DoubleSide }));
+    materialsPhong.set("ovniBody", new THREE.MeshPhongMaterial({ color: 0x888888, shininess: 100, side: THREE.DoubleSide }));
+    materialsPhong.set("ovniCockpit", new THREE.MeshPhongMaterial({ color: 0x99ccff, transparent: true, opacity: 0.7, side: THREE.DoubleSide }));
+    materialsPhong.set("ovniLight", new THREE.MeshPhongMaterial({ color: 0xff0000, emissive: 0xff0000, side: THREE.DoubleSide }));
+    materialsPhong.set("ovniCylinder", new THREE.MeshPhongMaterial({ color: 0xffff00, emissive: 0xffff00, side: THREE.DoubleSide }));
+    materialsPhong.set("moon", new THREE.MeshPhongMaterial({ color: moonYellow, emissive: moonYellow, emissiveIntensity: 2, side: THREE.DoubleSide }));
 }
  
 function createBasicMaterials() {
     'use strict';
-    materialsBasic.set("wall", new THREE.MeshLambertMaterial({ color: white }));
-    materialsBasic.set("window", new THREE.MeshLambertMaterial({ color: bluecyan }));
-    materialsBasic.set("door", new THREE.MeshLambertMaterial({ color: brown }));
-    materialsBasic.set("frame", new THREE.MeshLambertMaterial({ color: yellow }));
-    materialsBasic.set("baseTrim", new THREE.MeshLambertMaterial({ color: yellow }));
-    materialsBasic.set("ceiling", new THREE.MeshLambertMaterial({ color: tileOrange }));
-    materialsPhong.set("treeTrunk", new THREE.MeshPhongMaterial({ color: brownOrange }));
-    materialsPhong.set("treeLeaves", new THREE.MeshPhongMaterial({ color: darkGreen }));
+    materialsBasic.set("wall", new THREE.MeshBasicMaterial({ color: white, side: THREE.DoubleSide }));
+    materialsBasic.set("window", new THREE.MeshBasicMaterial({ color: bluecyan, side: THREE.DoubleSide }));
+    materialsBasic.set("door", new THREE.MeshBasicMaterial({ color: brown, side: THREE.DoubleSide }));
+    materialsBasic.set("frame", new THREE.MeshBasicMaterial({ color: yellow, side: THREE.DoubleSide }));
+    materialsBasic.set("baseTrim", new THREE.MeshBasicMaterial({ color: yellow, side: THREE.DoubleSide }));
+    materialsBasic.set("ceiling", new THREE.MeshBasicMaterial({ color: tileOrange, side: THREE.DoubleSide }));
+    materialsBasic.set("treeTrunk", new THREE.MeshBasicMaterial({ color: brownOrange, side: THREE.DoubleSide }));
+    materialsBasic.set("treeLeaves", new THREE.MeshBasicMaterial({ color: darkGreen, side: THREE.DoubleSide }));
+    materialsBasic.set("ovniBody", new THREE.MeshBasicMaterial({ color: 0x888888, side: THREE.DoubleSide }));
+    materialsBasic.set("ovniCockpit", new THREE.MeshBasicMaterial({ color: 0x99ccff, transparent: true, opacity: 0.7, side: THREE.DoubleSide }));
+    materialsBasic.set("ovniLight", new THREE.MeshBasicMaterial({ color: 0xff0000, side: THREE.DoubleSide }));
+    materialsBasic.set("ovniCylinder", new THREE.MeshBasicMaterial({ color: 0xffff00, side: THREE.DoubleSide }));
+    materialsBasic.set("moon", new THREE.MeshBasicMaterial({ color: moonYellow, side: THREE.DoubleSide }));
 }
 
-function updateMaterials() {
+function updateMaterials(materialsMap) {
     'use strict';
-    // TO DO: Update materials if needed
-    // TO DO Rodrigo: from my parts
+    scene.traverse((obj) => {
+        if (obj.isMesh && obj.userData.materialType) {
+            const mat = materialsMap.get(obj.userData.materialType);
+            if (mat) obj.material = mat;
+        }
+    });
 }
-
-// #region CREATE LIGHTS
-/////////////////////
-/* CREATE LIGHT(S) */
-/////////////////////
-function updateLights() {
-    'use strict';
-    // TO DO: Update lights if needed
-}
-// #endregion
-
-// #region SHADE CALCULATION
-///////////////////////
-/* SHADE CALCULATION */
-///////////////////////
-function updateShadeCalculation() {
-    'use strict';
-    // TO DO: Update shade calculation if needed
-}
-// #endregion
 
 // #region CREATE OBJECT3D(S)
 ////////////////////////
@@ -540,30 +564,35 @@ function createTree(x = 0, y = 0, z = 0, group = null) {
     const trunk = createCustomCylinder(0.8, 0.4, 3, 16, matTrunk);
     trunk.position.y = 1.5;
     trunk.rotation.z = THREE.MathUtils.degToRad(10);
+    trunk.userData.materialType = "treeTrunk";
     tree.add(trunk);
 
     // === Branch
     const branch = createCustomCylinder(0.25, 0.15, 3, 16, matTrunk);
     branch.position.set(-0.5, 1.5, 0);
     branch.rotation.z = THREE.MathUtils.degToRad(30);
+    branch.userData.materialType = "treeTrunk";
     tree.add(branch);
 
     // === Leaves
     // Main Ellipsoid
     const leaves1 = createEllipsoid(1.6, 0.9, 1.6, matLeaves);
     leaves1.position.set(0, 3.5, 0);
+    leaves1.userData.materialType = "treeLeaves";
     tree.add(leaves1);
 
     // Second ELlipsoid (Only appears in some trees)
     if (Math.random() < 0.33) {
         const leaves2 = createEllipsoid(1.2, 0.7, 0.8, matLeaves);
         leaves2.position.set(1.2, 3, 0.5);
+        leaves2.userData.materialType = "treeLeaves";
         tree.add(leaves2);
     }
 
     // Ellipsoid on the branch
     const leaves3 = createEllipsoid(1, 0.5, 1, matLeaves);
     leaves3.position.set(-1.5, 3, 0);
+    leaves3.userData.materialType = "treeLeaves";
     tree.add(leaves3);
 
     if (!group) {
@@ -582,7 +611,7 @@ function createMoon(x, y, z) {
     const material = new THREE.MeshPhongMaterial({ color: moonYellow, emissive: moonYellow });
     const moonMesh = new THREE.Mesh(geometry, material);
     moonMesh.position.set(x, y, z); // Position it in the sky
-
+    moonMesh.userData.materialType = "moon";
     moon = moonMesh;
 }
 
@@ -626,13 +655,15 @@ function createOvniLights(group, nLuzes, rLuzes, yLuz) {
         sphereGeo.computeVertexNormals();
         const sphereMat = new THREE.MeshPhongMaterial({ color: 0xff0000, emissive: 0xff0000 });
         const sphereMesh = new THREE.Mesh(sphereGeo, sphereMat);
+        sphereMesh.userData.materialType = "ovniLight";
         group.add(sphereMesh);
 
         // Luz pontual
-        const pointLight = new THREE.PointLight(0xff0000, 1, 10);
+        const pointLight = new THREE.PointLight(0xff0000, 5, 20);
         pointLight.position.set(lx, yLuz, lz);
         group.add(pointLight);
         ovniPointLights.push(pointLight);
+
 
     }
 
@@ -641,10 +672,11 @@ function createOvniLights(group, nLuzes, rLuzes, yLuz) {
     const cylGeo = createCylinderGeometry(0.5, cylHeight, 16);
     const cylMat = new THREE.MeshPhongMaterial({ color: 0xffff00, emissive: 0xffff00 });
     const cylMesh = new THREE.Mesh(cylGeo, cylMat);
+    cylMesh.userData.materialType = "ovniCylinder";
     group.add(cylMesh);
 
     // Spotlight
-    ovniSpotLight = new THREE.SpotLight(0xffffff, 2, 40, Math.PI / 6, 0.5, 1);
+    ovniSpotLight = new THREE.SpotLight(0xffffff, 50, 0, Math.PI / 6, 0.5, 1);
     ovniSpotLight.position.set(0, -OVNI_HEIGHT - cylHeight, 0);
     ovniSpotLight.target.position.set(0, -OVNI_HEIGHT - cylHeight - 5, 0);
     ovniGroup.add(ovniSpotLight);
@@ -662,6 +694,7 @@ function createOvni(x, y, z) {
     const corpoMat = new THREE.MeshPhongMaterial({ color: 0x888888, shininess: 100 });
     const corpoMesh = new THREE.Mesh(corpoGeo, corpoMat);
     corpoMesh.scale.y = OVNI_HEIGHT / OVNI_RADIUS; // Squash the sphere
+    corpoMesh.userData.materialType = "ovniBody";
     ovniGroup.add(corpoMesh);
 
     // Cockpit
@@ -669,6 +702,7 @@ function createOvni(x, y, z) {
     const cockpitMat = new THREE.MeshPhongMaterial({ color: 0x99ccff, transparent: true, opacity: 0.7 });
     const cockpitMesh = new THREE.Mesh(cockpitGeo, cockpitMat);
     cockpitMesh.position.y = OVNI_HEIGHT * 0.7;
+    cockpitMesh.userData.materialType = "ovniCockpit";
     ovniGroup.add(cockpitMesh);
 
     
@@ -1206,7 +1240,36 @@ function onKeyDown(e) {
             
             skyDome.material.needsUpdate = true;
             break;
-
+        case 'q':
+        case 'Q':
+            updateMaterials(materialsLambert);
+            break;
+        case 'w':
+        case 'W':
+            updateMaterials(materialsPhong);
+            break;
+        case 'e':
+        case 'E':
+            updateMaterials(materialsToon);
+            break;
+        case 'r':
+        case 'R':
+            // Toggle lighting: switch to MeshBasicMaterial or back
+            scene.traverse((obj) => {
+                if (obj.isMesh && obj.userData.materialType) {
+                    if (shadeCalculation) {
+                        // Turn off lighting
+                        const mat = materialsBasic.get(obj.userData.materialType);
+                        if (mat) obj.material = mat;
+                    } else {
+                        // Restore previous (e.g., Phong)
+                        const mat = materialsPhong.get(obj.userData.materialType);
+                        if (mat) obj.material = mat;
+                    }
+                }
+            });
+            shadeCalculation = !shadeCalculation;
+            break;
         case 'p':
         case 'P':
             ovniPointLightsOn = !ovniPointLightsOn;
