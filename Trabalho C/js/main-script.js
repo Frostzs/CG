@@ -29,6 +29,39 @@ var controls;
 var groundTexture, skyTexture;
 var treePos = [], trees = [];
 
+const treePositions = [
+  { x:  20, z:  36 },
+  { x: -11, z:  44 },
+  { x: -25, z:  28 },
+  { x: -44, z:  45 },
+  { x: -10, z:  23 },
+  { x: -33, z:  27 },
+  { x: -12, z:  31 },
+  { x:  39, z:  54 },
+  { x: -32, z:  54 },
+  { x:  26, z:  54 },
+  { x: -20, z:  36 },
+  { x:  38, z:  29 },
+  { x:   6, z:  24 },
+  { x:  -1, z:  30 },
+  { x:   5, z:  58 },
+  { x:   7, z:  -9 },
+  { x:  22, z:   6 },
+  { x:  14, z:  -3 },
+  { x:  -1, z: -18 },
+  { x:  14, z: -12 },
+  { x:   2, z:  16 },
+  { x:  27, z:  25 },
+  { x: -14, z:   5 },
+  { x:  -3, z:  -3 },
+  { x:  15, z:  29 },
+  { x: -33, z:  -4 },
+  { x:   4, z:  33 },
+  { x:  26, z:   4 },
+  { x:   4, z:  -3 },
+  { x: -21, z:  39 }
+];
+
 /*
 // Lights
 var ambientLight = new THREE.AmbientLight( cor, intensidade? );
@@ -172,14 +205,10 @@ function createTerrainWithHeightmap() {
 
             groundPlane.receiveShadow = true;
             scene.add(groundPlane);
-            const houseX = -25;
-            const houseZ = 50;
-            const yGround = getGroundHeightAt(houseX, houseZ);
-//            createAlentejoHouse(houseX, yGround, houseZ);
 
             createAlentejoHouse(-25, 30, 50);
-            randomPTrees(15);
-            createTree(15, 50, 70);
+            createTree(5, 27.5, 30);
+            placeTrees();
         };
 
         // Caso a imagem já esteja carregada (às vezes o `onload` não dispara)
@@ -189,28 +218,44 @@ function createTerrainWithHeightmap() {
     });
 }
 
-function getGroundHeightAt(xTarget, zTarget) {
-    if (!groundPlane || !groundPlane.geometry || !groundPlane.geometry.attributes.position) {
-        console.warn('Ground plane not ready yet.');
-        return 0;
+function addQuadToGroup(group, p1, p2, p3, p4, material) {
+  const geometry = new THREE.BufferGeometry();
+  const vertices = new Float32Array([
+    ...p1, ...p2, ...p3,
+    ...p1, ...p3, ...p4
+  ]);
+  geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+  geometry.computeVertexNormals();
+
+  const mesh = new THREE.Mesh(geometry, material);
+  group.add(mesh);
+}
+
+function addTriangleToGroup(group, p1, p2, p3, material) {
+    const geometry = new THREE.BufferGeometry();
+    const vertices = new Float32Array([
+        ...p1, ...p2, ...p3
+    ]);
+    geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+    geometry.computeVertexNormals();
+
+    const mesh = new THREE.Mesh(geometry, material);
+    group.add(mesh);
+}
+
+function placeTrees() {
+    const y = 27.5;
+
+    for (const pos of treePositions) {
+        const tree = new THREE.Group();
+        createTree(0, 0, 0, tree);
+        tree.position.set(pos.x, y, pos.z);
+        tree.rotation.y = Math.random() * Math.PI * 2;
+        const scale = 0.8 + Math.random() * 0.7;
+        tree.scale.set(scale, scale, scale);
+
+        scene.add(tree);
     }
-
-    const positionAttr = groundPlane.geometry.attributes.position;
-    let closestIndex = 0;
-    let minDist = Infinity;
-
-    for (let i = 0; i < positionAttr.count; i++) {
-        const x = positionAttr.getX(i);
-        const z = positionAttr.getZ(i); // ← agora correto (é o que se torna Z no mundo)
-        const dist = (x - xTarget) ** 2 + (z - zTarget) ** 2;
-
-        if (dist < minDist) {
-            minDist = dist;
-            closestIndex = i;
-        }
-    }
-
-    return positionAttr.getY(closestIndex); // ← Y da geometria = altura no mundo após rotação
 }
 
 // #region CREATE SCENE(S)
@@ -512,36 +557,6 @@ function createTerrain() {
     // TO DO: Create terrain as Object3D
 }
 
-// cena mt rapida dps componho
-function randomPTrees(n) {
-    const safeDistanceHouse = 4;
-    const houseX = -25, houseZ = 50;
-
-    for (let i = 0; i < n; i++) {
-        let x, z, y;
-        let attempts = 0;
-
-        do {
-            x = Math.random() * 100 - 50;
-            z = Math.random() * 100 - 50 + 30;
-            attempts++;
-        } while (
-            Math.abs(x - houseX) < safeDistanceHouse &&
-            Math.abs(z - houseZ) < safeDistanceHouse &&
-            attempts < 20 // to prevent loop without end
-        )
-        y = getGroundHeightAt(x, z);
-        const tree = new THREE.Group();
-        createTree(0, 0, 0, tree);
-        tree.position.set(x, y, z);
-        tree.rotation.y = Math.random() * Math.PI * 2;
-        const scale = 0.8  + Math.random() * 0.7;
-        tree.scale.set(scale, scale, scale);
-
-        scene.add(tree);
-    }
-}
-
 function createTree(x = 0, y = 0, z = 0, group = null) {
 
     const tree = group || new THREE.Group();
@@ -564,7 +579,7 @@ function createTree(x = 0, y = 0, z = 0, group = null) {
     // === Leaves
     // Main Ellipsoid
     const leaves1 = createEllipsoid(1.6, 0.9, 1.6, matLeaves);
-    leaves1.position.set(0.5, 4, 0);
+    leaves1.position.set(0, 3.5, 0);
     tree.add(leaves1);
 
     // Second ELlipsoid (Only appears in some trees)
@@ -693,33 +708,6 @@ function createOvni(x, y, z) {
     ovni = ovniGroup;
     ovni.castShadow = true;
 }
-
-// Auxiliar function to create a section with color
-function addQuadToGroup(group, p1, p2, p3, p4, material) {
-  const geometry = new THREE.BufferGeometry();
-  const vertices = new Float32Array([
-    ...p1, ...p2, ...p3,
-    ...p1, ...p3, ...p4
-  ]);
-  geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
-  geometry.computeVertexNormals();
-
-  const mesh = new THREE.Mesh(geometry, material);
-  group.add(mesh);
-}
-
-function addTriangleToGroup(group, p1, p2, p3, material) {
-    const geometry = new THREE.BufferGeometry();
-    const vertices = new Float32Array([
-        ...p1, ...p2, ...p3
-    ]);
-    geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
-    geometry.computeVertexNormals();
-
-    const mesh = new THREE.Mesh(geometry, material);
-    group.add(mesh);
-}
-
 // #region CREATE HOUSE
 function createFrameDoor(x, y, z) {
     'use strict';
