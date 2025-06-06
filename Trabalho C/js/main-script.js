@@ -25,7 +25,6 @@ var cameras = []
 var moon, ovni, tree;
 let houseAlentejo
 var controls;
-// var skydome, terrain;
 var groundTexture, skyTexture;
 var treePos = [], trees = [];
 
@@ -61,13 +60,6 @@ const treePositions = [
   { x:   4, z:  -3 },
   { x: -21, z:  39 }
 ];
-
-/*
-// Lights
-var ambientLight = new THREE.AmbientLight( cor, intensidade? );
-var globalLight = new THREE.DirectionalLight( cor, intensidade? );
-var whatMAterial = "???";
-*/
 
 // Materials
 const materials = new Map(), materialsLambert = new Map(), materialsPhong = new Map(), 
@@ -325,8 +317,7 @@ function createMaterials() {
     materials.set("ceiling", new THREE.MeshLambertMaterial({ color: tileOrange, side: THREE.DoubleSide }));
     materials.set("treeTrunk", new THREE.MeshLambertMaterial({ color: brownOrange, side: THREE.DoubleSide }));
     materials.set("treeLeaves", new THREE.MeshLambertMaterial({ color: darkGreen, side: THREE.DoubleSide }));
-    // TO DO Rodrigo: from my parts
-
+    
     createLambertMaterials();
     createPhongMaterials();
     createToonMaterials();
@@ -336,49 +327,49 @@ function createMaterials() {
 function createToonMaterials() {
     'use strict';
     materialsToon.set("wall", new THREE.MeshLambertMaterial({ color: white }));
-    materialsToon.set("window", new THREE.MeshLambertMaterial({ color: blue }));
+    materialsToon.set("window", new THREE.MeshLambertMaterial({ color: bluecyan }));
     materialsToon.set("door", new THREE.MeshLambertMaterial({ color: brown }));
     materialsToon.set("frame", new THREE.MeshLambertMaterial({ color: yellow }));
     materialsToon.set("baseTrim", new THREE.MeshLambertMaterial({ color: yellow }));
     materialsToon.set("ceiling", new THREE.MeshLambertMaterial({ color: tileOrange }));
-    // TO DO: Create toon materials for objects
-    // TO DO Rodrigo: from my parts
+    materialsPhong.set("treeTrunk", new THREE.MeshPhongMaterial({ color: brownOrange }));
+    materialsPhong.set("treeLeaves", new THREE.MeshPhongMaterial({ color: darkGreen }));
 }
 
 function createLambertMaterials() {
     'use strict';
     materialsLambert.set("wall", new THREE.MeshLambertMaterial({ color: white }));
-    materialsLambert.set("window", new THREE.MeshLambertMaterial({ color: blue }));
+    materialsLambert.set("window", new THREE.MeshLambertMaterial({ color: bluecyan }));
     materialsLambert.set("door", new THREE.MeshLambertMaterial({ color: brown }));
     materialsLambert.set("frame", new THREE.MeshLambertMaterial({ color: yellow }));
     materialsLambert.set("baseTrim", new THREE.MeshLambertMaterial({ color: yellow }));
     materialsLambert.set("ceiling", new THREE.MeshLambertMaterial({ color: tileOrange }));
-    // TO DO: Create Lambert materials for objects
-    // TO DO Rodrigo: from my parts
+    materialsPhong.set("treeTrunk", new THREE.MeshPhongMaterial({ color: brownOrange }));
+    materialsPhong.set("treeLeaves", new THREE.MeshPhongMaterial({ color: darkGreen }));
 }
 
 function createPhongMaterials() {
     'use strict';
     materialsPhong.set("wall", new THREE.MeshLambertMaterial({ color: white }));
-    materialsPhong.set("window", new THREE.MeshLambertMaterial({ color: blue }));
+    materialsPhong.set("window", new THREE.MeshLambertMaterial({ color: bluecyan }));
     materialsPhong.set("door", new THREE.MeshLambertMaterial({ color: brown }));
     materialsPhong.set("frame", new THREE.MeshLambertMaterial({ color: yellow }));
     materialsPhong.set("baseTrim", new THREE.MeshLambertMaterial({ color: yellow }));
     materialsPhong.set("ceiling", new THREE.MeshLambertMaterial({ color: tileOrange }));
-    // TO DO: Create Phong materials for objects
-    // TO DO Rodrigo: from my parts
+    materialsPhong.set("treeTrunk", new THREE.MeshPhongMaterial({ color: brownOrange }));
+    materialsPhong.set("treeLeaves", new THREE.MeshPhongMaterial({ color: darkGreen }));
 }
  
 function createBasicMaterials() {
     'use strict';
     materialsBasic.set("wall", new THREE.MeshLambertMaterial({ color: white }));
-    materialsBasic.set("window", new THREE.MeshLambertMaterial({ color: blue }));
+    materialsBasic.set("window", new THREE.MeshLambertMaterial({ color: bluecyan }));
     materialsBasic.set("door", new THREE.MeshLambertMaterial({ color: brown }));
     materialsBasic.set("frame", new THREE.MeshLambertMaterial({ color: yellow }));
     materialsBasic.set("baseTrim", new THREE.MeshLambertMaterial({ color: yellow }));
     materialsBasic.set("ceiling", new THREE.MeshLambertMaterial({ color: tileOrange }));
-    // TO DO: Create basic materials for objects
-    // TO DO Rodrigo: from my parts
+    materialsPhong.set("treeTrunk", new THREE.MeshPhongMaterial({ color: brownOrange }));
+    materialsPhong.set("treeLeaves", new THREE.MeshPhongMaterial({ color: darkGreen }));
 }
 
 function updateMaterials() {
@@ -532,29 +523,10 @@ function createEllipsoid(scaleX, scaleY, scaleZ, material) {
     return mesh;
 }
 
-function createFlowers() {
-    'use strict';
-    // TO DO: Create flowers as Object3D(IF needed)
-}
-
-function createStars() {
-    'use strict';
-    // TO DO: Create stars as Object3D
-}
 
 function createDegrade() {
     'use strict';
     // TO DO: Create degrade as Object3D(????)
-}
-
-function createSkydome() {
-    'use strict';
-    // TO DO: Create skydome as Object3D
-}
-
-function createTerrain() {
-    'use strict';
-    // TO DO: Create terrain as Object3D
 }
 
 function createTree(x = 0, y = 0, z = 0, group = null) {
