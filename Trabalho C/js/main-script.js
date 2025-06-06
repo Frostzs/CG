@@ -1,4 +1,7 @@
 import * as THREE from "three";
+import { VRButton } from './VRButton.js';
+import { OrbitControls } from './OrbitControls.js';
+
 
 //////////////////////
 /* GLOBAL VARIABLES */
@@ -12,12 +15,18 @@ let scene, activeCamera, renderer;
 let globalDirectionalLight;
 let globalDirectionalLightOn = true;
 
+let  ovniGroup, ovniPointLights = [], ovniSpotLight;
+let ovniPointLightsOn = true, ovniSpotLightOn = true;
+let ovniMoving = { left: false, right: false, up: false, down: false };
+const OVNI_RADIUS = 5, OVNI_HEIGHT = 0.8, OVNI_SPEED = 0.3, OVNI_ROT_SPEED = 0.02;
+
 var cameras = []
 
 var moon, ovni, tree;
 let houseAlentejo
+var controls;
 // var skydome, terrain;
-
+var groundTexture, skyTexture;
 var treePos = [], trees = [];
 
 /*
@@ -44,7 +53,10 @@ const brown = 0x5a3825;
 const tileOrange = 0xcf5000;
 const blue = 0x0f2aff;
 const black = 0xffffff;
-const bluecyan = 0x00ffff;
+const bluecyan = 0xB0E0E6;
+const darkGreen = 0x013220;
+const brownOrange = 0xcc5500;
+const lightGreen = '#0b3d0b';
 
 
 function generateFloralTexture() {
@@ -52,14 +64,14 @@ function generateFloralTexture() {
     canvas.width = canvas.height = canvasSize;
     const ctx = canvas.getContext('2d');
 
-    ctx.fillStyle = '#0b3d0b'; // light green
+    ctx.fillStyle = lightGreen;
     ctx.fillRect(0, 0, canvasSize, canvasSize);
 
     const colors = ['white', 'yellow', 'violet', 'lightblue'];
-    for (let i = 0; i < 500; i++) {
+    for (let i = 0; i < 200; i++) {
         const x = Math.random() * canvasSize;
         const y = Math.random() * canvasSize;
-        const r = 0.5 + Math.random() * 1.5;
+        const r = 1.6 + Math.random() * 1.5; 
         ctx.beginPath();
         ctx.arc(x, y, r, 0, Math.PI * 2);
         ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
@@ -110,6 +122,97 @@ function generateStarryTexture() {
     return new THREE.CanvasTexture(canvas);
 }
 
+function createTerrainWithHeightmap() {
+    const loader = new THREE.TextureLoader();
+    loader.load('heightmap.png', function(heightmap) {
+        const img = heightmap.image;
+
+        // Espera a imagem carregar completamente
+        img.onload = () => {
+            const width = img.width;
+            const height = img.height;
+
+            const geometry = new THREE.PlaneGeometry(100, 100, width , height ); 
+
+
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = width;
+            canvas.height = height;
+            context.drawImage(img, 0, 0);
+            const pixelData = context.getImageData(0, 0, width, height).data;
+
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const vertexIndex = y * width + x;
+                    const pixelIndex = (y * width + x) * 4;
+                    const elevation = pixelData[pixelIndex] / 225 * 3; // escalar a altura
+
+                    geometry.attributes.position.setZ(vertexIndex, elevation);
+                }
+            }
+
+            geometry.computeVertexNormals();
+
+            const texture = generateFloralTexture();
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(25, 50); 
+
+            const material = new THREE.MeshPhongMaterial({
+                map: texture,
+                flatShading: false,
+                side: THREE.DoubleSide,
+            });
+
+
+            groundPlane = new THREE.Mesh(geometry, material);
+            groundPlane.rotation.x = -Math.PI / 2;
+            groundPlane.position.set(0, 25, 30);
+
+            groundPlane.receiveShadow = true;
+            scene.add(groundPlane);
+            const houseX = -25;
+            const houseZ = 50;
+            const yGround = getGroundHeightAt(houseX, houseZ);
+//            createAlentejoHouse(houseX, yGround, houseZ);
+
+            createAlentejoHouse(-25, 30, 50);
+//            randomPTrees(15);
+            createTree(0, 30, 0);
+        };
+
+        // Caso a imagem já esteja carregada (às vezes o `onload` não dispara)
+        if (img.complete && img.naturalWidth !== 0) {
+            img.onload(); 
+        }
+    });
+}
+
+// not work well yet
+function getGroundHeightAt(xTarget, zTarget) {
+    if (!groundPlane || !groundPlane.geometry || !groundPlane.geometry.attributes.position) {
+        console.warn('Ground plane not ready yet.');
+        return 0;
+    }
+
+    const positionAttr = groundPlane.geometry.attributes.position;
+    let closestIndex = 0;
+    let minDist = Infinity;
+
+    for (let i = 0; i < positionAttr.count; i++) {
+        const x = positionAttr.getX(i);
+        const z = positionAttr.getZ(i); // ← agora correto (é o que se torna Z no mundo)
+        const dist = (x - xTarget) ** 2 + (z - zTarget) ** 2;
+
+        if (dist < minDist) {
+            minDist = dist;
+            closestIndex = i;
+        }
+    }
+
+    return positionAttr.getY(closestIndex); // ← Y da geometria = altura no mundo após rotação
+}
 
 // #region CREATE SCENE(S)
 /////////////////////
@@ -118,12 +221,7 @@ function generateStarryTexture() {
 function createScene() {
     'use strict';
     scene = new THREE.Scene();
-
-    const groundGeo = new THREE.PlaneGeometry(100, 100);
-    const groundMat = new THREE.MeshBasicMaterial({ color: 0xffffff,map: generateFloralTexture() });
-    groundPlane = new THREE.Mesh(groundGeo, groundMat);
-    groundPlane.rotation.x = -Math.PI / 2;
-    scene.add(groundPlane);
+    createTerrainWithHeightmap();
 
     const skyGeo = new THREE.SphereGeometry(100, 32, 32);
     const skyMat = new THREE.MeshBasicMaterial({
@@ -138,7 +236,7 @@ function createScene() {
     const ambient = new THREE.AmbientLight(0xffffff, 0.3);
     scene.add(ambient);
 
-    createMoon(3, 24, 16);
+    createMoon(20, 80, -30);
     scene.add(moon);
 
     globalDirectionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
@@ -146,6 +244,8 @@ function createScene() {
     globalDirectionalLight.target.position.set(0, 0, 0);
     scene.add(globalDirectionalLight);
     scene.add(globalDirectionalLight.target);
+
+    createOvni(50, 50, 50);
     
 }
 // #endregion
@@ -156,13 +256,13 @@ function createScene() {
 //////////////////////
 function createCamera() {
      const aspect = window.innerWidth / window.innerHeight;
-    const pers = new THREE.PerspectiveCamera(75, aspect, 0.1, 500);
-    pers.position.set(0, 5, 30);
-    pers.lookAt(0, 10, 10);
+    const pers = new THREE.PerspectiveCamera(60, aspect, 0.1, 500);
+    pers.position.set(20, 60, 80);  // X=80 (right), Y=60 (top), Z=80 (front-right)
+    pers.lookAt(0, 0, 0);           // Look toward the center of the scene
 
-    cameras = {
-        perspective: pers
-    };
+        cameras = {
+            perspective: pers
+        };
 
     activeCamera = cameras.perspective;
 }
@@ -173,13 +273,14 @@ function createCamera() {
 //////////////////////
 function createMaterials() {
     'use strict';
-    materials.set("wall", new THREE.MeshLambertMaterial({ color: white, side: THREE.FrontSide }));
-    materials.set("window", new THREE.MeshLambertMaterial({ color: blue, side: THREE.FrontSide }));
-    materials.set("door", new THREE.MeshLambertMaterial({ color: brown, side: THREE.FrontSide }));
-    materials.set("frame", new THREE.MeshLambertMaterial({ color: yellow, side: THREE.FrontSide }));
-    materials.set("baseTrim", new THREE.MeshLambertMaterial({ color: yellow, side: THREE.FrontSide }));
-    materials.set("ceiling", new THREE.MeshLambertMaterial({ color: tileOrange, side: THREE.FrontSide }));
-    // TO DO: Create materials for objects
+    materials.set("wall", new THREE.MeshLambertMaterial({ color: white, side: THREE.DoubleSide }));
+    materials.set("window", new THREE.MeshLambertMaterial({ color: bluecyan, side: THREE.DoubleSide }));
+    materials.set("door", new THREE.MeshLambertMaterial({ color: brown, side: THREE.DoubleSide }));
+    materials.set("frame", new THREE.MeshLambertMaterial({ color: yellow, side: THREE.DoubleSide }));
+    materials.set("baseTrim", new THREE.MeshLambertMaterial({ color: yellow, side: THREE.DoubleSide }));
+    materials.set("ceiling", new THREE.MeshLambertMaterial({ color: tileOrange, side: THREE.DoubleSide }));
+    materials.set("treeTrunk", new THREE.MeshLambertMaterial({ color: brownOrange, side: THREE.DoubleSide }));
+    materials.set("treeLeaves", new THREE.MeshLambertMaterial({ color: darkGreen, side: THREE.DoubleSide }));
     // TO DO Rodrigo: from my parts
 
     createLambertMaterials();
@@ -223,7 +324,7 @@ function createPhongMaterials() {
     // TO DO: Create Phong materials for objects
     // TO DO Rodrigo: from my parts
 }
-
+ 
 function createBasicMaterials() {
     'use strict';
     materialsBasic.set("wall", new THREE.MeshLambertMaterial({ color: white }));
@@ -266,6 +367,115 @@ function updateShadeCalculation() {
 ////////////////////////
 /* CREATE OBJECT3D(S) */
 ////////////////////////
+
+// Creation of a sphere using BufferGeometry
+function createSphereGeometry(radius, widthSegments, heightSegments) {
+    const geometry = new THREE.BufferGeometry();
+    const vertices = [];
+    const indices = [];
+    const uvs = [];
+    for (let y = 0; y <= heightSegments; y++) {
+        const v = y / heightSegments;
+        const theta = v * Math.PI;
+        for (let x = 0; x <= widthSegments; x++) {
+            const u = x / widthSegments;
+            const phi = u * Math.PI * 2;
+            const px = radius * Math.cos(phi) * Math.sin(theta);
+            const py = radius * Math.cos(theta);
+            const pz = radius * Math.sin(phi) * Math.sin(theta);
+            vertices.push(px, py, pz);
+            uvs.push(u, v);
+        }
+    }
+    for (let y = 0; y < heightSegments; y++) {
+        for (let x = 0; x < widthSegments; x++) {
+            const a = y * (widthSegments + 1) + x;
+            const b = a + widthSegments + 1;
+            const c = b + 1;
+            const d = a + 1;
+            indices.push(a, b, d);
+            indices.push(b, c, d);
+        }
+    }
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    geometry.setIndex(indices);
+    geometry.computeVertexNormals();
+    return geometry;
+}
+
+//  Create spherical cap using BufferGeometry
+function createSphericalCapGeometry(radius, widthSegments, heightSegments, phiLength) {
+    const geometry = new THREE.BufferGeometry();
+    const vertices = [];
+    const indices = [];
+    const uvs = [];
+    for (let y = 0; y <= heightSegments; y++) {
+        const v = y / heightSegments;
+        const theta = v * phiLength;
+        for (let x = 0; x <= widthSegments; x++) {
+            const u = x / widthSegments;
+            const phi = u * Math.PI * 2;
+            const px = radius * Math.cos(phi) * Math.sin(theta);
+            const py = radius * Math.cos(theta);
+            const pz = radius * Math.sin(phi) * Math.sin(theta);
+            vertices.push(px, py, pz);
+            uvs.push(u, v);
+        }
+    }
+    for (let y = 0; y < heightSegments; y++) {
+        for (let x = 0; x < widthSegments; x++) {
+            const a = y * (widthSegments + 1) + x;
+            const b = a + widthSegments + 1;
+            const c = b + 1;
+            const d = a + 1;
+            indices.push(a, b, d);
+            indices.push(b, c, d);
+        }
+    }
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    geometry.setIndex(indices);
+    geometry.computeVertexNormals();
+    return geometry;
+}
+
+// Create a cylinder for the bottom part of the ovni using BufferGeometry
+function createCylinderGeometry(radius, height, radialSegments) {
+    const geometry = new THREE.BufferGeometry();
+    const vertices = [];
+    const indices = [];
+    // Top circle
+    for (let i = 0; i < radialSegments; i++) {
+        const angle = (i / radialSegments) * Math.PI * 2;
+        vertices.push(
+            Math.cos(angle) * radius,
+            height / 2,
+            Math.sin(angle) * radius
+        );
+    }
+    // Bottom circle
+    for (let i = 0; i < radialSegments; i++) {
+        const angle = (i / radialSegments) * Math.PI * 2;
+        vertices.push(
+            Math.cos(angle) * radius,
+            -height / 2,
+            Math.sin(angle) * radius
+        );
+    }
+    // lateral faces
+    for (let i = 0; i < radialSegments; i++) {
+        const next = (i + 1) % radialSegments;
+        indices.push(i, next, radialSegments + i);
+        indices.push(next, radialSegments + next, radialSegments + i);
+    }
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    geometry.setIndex(indices);
+    geometry.computeVertexNormals();
+    return geometry;
+}
+
+
 function createFlowers() {
     'use strict';
     // TO DO: Create flowers as Object3D(IF needed)
@@ -291,78 +501,171 @@ function createTerrain() {
     // TO DO: Create terrain as Object3D
 }
 
-function createTree() {
-    'use strict';
-    // TO DO Rodrigo: Create tree as Object3D
+// cena mt rapida dps componho
+function randomPTrees(n) {
+    for (let i = 0; i < n; i++) {
+        const x = (Math.random() - 0.5) * 400; // dentro do terreno (-200 a +200)
+        const z = (Math.random() - 0.5) * 600; // dentro do terreno (-300 a +300)
+        const y = getGroundHeightAt(x, z);
 
-    // Tree trunk
+        const tree = new THREE.Group();
+        createTree(0, 0, 0, tree); // árvore centrada na origem
 
-    // Branches
+        tree.position.set(x, y, z);
+        tree.rotation.y = Math.random() * Math.PI * 2; // rotação aleatória
+        const scale = 0.8 + Math.random() * 0.7;
+        tree.scale.set(scale, scale, scale); // escala aleatória
 
-    // Leaves
+        scene.add(tree);
+    }
 }
 
-function createMoon(radius, widthSegments, heightSegments) {
+function createTree(x = 0, y = 0, z = 0, group = null) {
+    const tree = group || new THREE.Group();
+    const matTrunk = materials.get("treeTrunk");
+    const matLeaves = materials.get("treeLeaves");
+
+    // Tree trunk(slightly incline)
+    const trunkGeometry = createCylinderGeometry(0.5, 6, 16);
+    const trunk = new THREE.Mesh(trunkGeometry, matTrunk);
+    trunk.rotation.z = THREE.MathUtils.degToRad(-10);
+    trunk.position.set(0, 3, 0);
+    tree.add(trunk);
+
+    // Second branch(opost inclination)
+    const branchGeometry = createCylinderGeometry(0.3, 4, 16);
+    const branch = new THREE.Mesh(branchGeometry, matTrunk);
+    branch.rotation.z = THREE.MathUtils.degToRad(30);
+    branch.position.set(0.8, 5.5, 0);
+    tree.add(branch);
+
+    // Leaves with 1 to 3 elipsoids
+    const numEllipsoids = 1 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < numEllipsoids; i++) {
+        const leafGeo = createSphereGeometry(1.5, 16, 12);
+        const leaf = new THREE.Mesh(leafGeo, matLeaves);
+        leaf.scale.y = 1.2 + Math.random();
+        leaf.position.set(
+            (Math.random() - 0.5) * 2,
+            7 + Math.random() * 2,
+            (Math.random() - 0.5) * 2
+        );
+        tree.add(leaf);
+    }
+
+    if (!group) {
+        tree.position.set(x, y, z);
+        scene.add(tree);
+    }
+}
+
+function createMoon(x, y, z) {
     'use strict';
     // Create an empty geometry
-    const geometry = new THREE.BufferGeometry();
-    const vertices = [];
-    const indices = [];
-    const uvs = [];
-
-    // Generate vertices
-    for (let y = 0; y <= heightSegments; y++) {
-        const v = y / heightSegments;
-        const theta = v * Math.PI;
-        for (let x = 0; x <= widthSegments; x++) {
-            const u = x / widthSegments;
-            const phi = u * Math.PI * 2;
-
-            const px = -radius * Math.cos(phi) * Math.sin(theta);
-            const py =  radius * Math.cos(theta);
-            const pz =  radius * Math.sin(phi) * Math.sin(theta);
-
-            vertices.push(px, py, pz);
-            uvs.push(u, v);
-        }
-    }
-
-    // Generate faces (indices)
-    for (let y = 0; y < heightSegments; y++) {
-        for (let x = 0; x < widthSegments; x++) {
-            const a = y * (widthSegments + 1) + x;
-            const b = a + widthSegments + 1;
-            const c = b + 1;
-            const d = a + 1;
-
-            // Each quad is made of two triangles
-            indices.push(a, b, d);
-            indices.push(b, c, d);
-        }
-    }
-
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-    geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-    geometry.setIndex(indices);
-    geometry.computeVertexNormals();
-
-    
+    const radius = 3;
+    const widthSegments = 24;
+    const heightSegments = 16;
+    const geometry = createSphereGeometry(radius, widthSegments, heightSegments);
     const material = new THREE.MeshPhongMaterial({ color: moonYellow, emissive: moonYellow });
-
     const moonMesh = new THREE.Mesh(geometry, material);
-    moonMesh.position.set(20, 30, -30); // Position it in the sky
+    moonMesh.position.set(x, y, z); // Position it in the sky
 
     moon = moonMesh;
 }
 
-function createOvniLights() {
-    'use strict';
-    // TO DO: Create ovni lights as Object3D
+// Cria as luzes do OVNI (chamada dentro de createOvni)
+function createOvniLights(group, nLuzes, rLuzes, yLuz) {
+    ovniPointLights = [];
+    for (let i = 0; i < nLuzes; i++) {
+        const angle = (i / nLuzes) * Math.PI * 2;
+        const lx = Math.cos(angle) * rLuzes;
+        const lz = Math.sin(angle) * rLuzes;
+        // Pequena esfera
+        const sphereGeo = new THREE.BufferGeometry();
+        const sphereVerts = [];
+        for (let j = 0; j <= 8; j++) {
+            const v = j / 8;
+            const theta = v * Math.PI;
+            for (let k = 0; k <= 8; k++) {
+                const u = k / 8;
+                const phi = u * Math.PI * 2;
+                sphereVerts.push(
+                    lx + 0.2 * Math.cos(phi) * Math.sin(theta),
+                    yLuz + 0.2 * Math.cos(theta),
+                    lz + 0.2 * Math.sin(phi) * Math.sin(theta)
+                );
+            }
+        }
+        // Faces da esfera pequena
+        const sphereIndices = [];
+        for (let j = 0; j < 8; j++) {
+            for (let k = 0; k < 8; k++) {
+                const a = j * 9 + k;
+                const b = a + 9;
+                const c = b + 1;
+                const d = a + 1;
+                sphereIndices.push(a, b, d);
+                sphereIndices.push(b, c, d);
+            }
+        }
+        sphereGeo.setAttribute('position', new THREE.Float32BufferAttribute(sphereVerts, 3));
+        sphereGeo.setIndex(sphereIndices);
+        sphereGeo.computeVertexNormals();
+        const sphereMat = new THREE.MeshPhongMaterial({ color: 0xff0000, emissive: 0xff0000 });
+        const sphereMesh = new THREE.Mesh(sphereGeo, sphereMat);
+        group.add(sphereMesh);
+
+        // Luz pontual
+        const pointLight = new THREE.PointLight(0xff0000, 1, 10);
+        pointLight.position.set(lx, yLuz, lz);
+        group.add(pointLight);
+        ovniPointLights.push(pointLight);
+
+    }
+
+    // Cylinder for the OVNI bottom part
+    const cylHeight = 0.2; // Height of the cylinder
+    const cylGeo = createCylinderGeometry(0.5, cylHeight, 16);
+    const cylMat = new THREE.MeshPhongMaterial({ color: 0xffff00, emissive: 0xffff00 });
+    const cylMesh = new THREE.Mesh(cylGeo, cylMat);
+    group.add(cylMesh);
+
+    // Spotlight
+    ovniSpotLight = new THREE.SpotLight(0xffffff, 2, 40, Math.PI / 6, 0.5, 1);
+    ovniSpotLight.position.set(0, -OVNI_HEIGHT - cylHeight, 0);
+    ovniSpotLight.target.position.set(0, -OVNI_HEIGHT - cylHeight - 5, 0);
+    ovniGroup.add(ovniSpotLight);
+    ovniGroup.add(ovniSpotLight.target);
+    ovniSpotLight.castShadow = true;
 }
 
+// Cria o OVNI manualmente
 function createOvni(x, y, z) {
     'use strict';
-    // TO DO: Create ovni as Object3D
+    ovniGroup = new THREE.Group();
+
+    // "Main" body for the OVNI
+    const corpoGeo = createSphereGeometry(OVNI_RADIUS, 32, 16);
+    const corpoMat = new THREE.MeshPhongMaterial({ color: 0x888888, shininess: 100 });
+    const corpoMesh = new THREE.Mesh(corpoGeo, corpoMat);
+    corpoMesh.scale.y = OVNI_HEIGHT / OVNI_RADIUS; // Squash the sphere
+    ovniGroup.add(corpoMesh);
+
+    // Cockpit
+    const cockpitGeo = createSphericalCapGeometry(OVNI_RADIUS * 0.6, 24, 12, Math.PI / 2);
+    const cockpitMat = new THREE.MeshPhongMaterial({ color: 0x99ccff, transparent: true, opacity: 0.7 });
+    const cockpitMesh = new THREE.Mesh(cockpitGeo, cockpitMat);
+    cockpitMesh.position.y = OVNI_HEIGHT * 0.7;
+    ovniGroup.add(cockpitMesh);
+
+    
+    createOvniLights(ovniGroup, 8, OVNI_RADIUS * 0.8, -OVNI_HEIGHT * 0.8);
+
+
+    ovniGroup.position.set(x, y, z);
+    scene.add(ovniGroup);
+    ovni = ovniGroup;
+    ovni.castShadow = true;
 }
 
 // Auxiliar function to create a section with color
@@ -377,6 +680,18 @@ function addQuadToGroup(group, p1, p2, p3, p4, material) {
 
   const mesh = new THREE.Mesh(geometry, material);
   group.add(mesh);
+}
+
+function addTriangleToGroup(group, p1, p2, p3, material) {
+    const geometry = new THREE.BufferGeometry();
+    const vertices = new Float32Array([
+        ...p1, ...p2, ...p3
+    ]);
+    geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+    geometry.computeVertexNormals();
+
+    const mesh = new THREE.Mesh(geometry, material);
+    group.add(mesh);
 }
 
 // #region CREATE HOUSE
@@ -458,98 +773,98 @@ function createFrameWindows(x, y, z) {
     const halfWidth = width / 2;
     const halfHeight = height / 2;
 
-    const zCenter = 0;
-    const zBottom = zCenter - halfHeight;
-    const zTop = zCenter + halfHeight;
-
     const group = new THREE.Object3D();
 
-    // Front wall windows
-    const yFront = 4.5;
+    // Front wall frames
+    const zFront = 4.5;
     const xCentersFront = [3, -3];
 
     for (const xC of xCentersFront) {
         const xLeft = xC - halfWidth;
         const xRight = xC + halfWidth;
+        const yBottom = -halfHeight;
+        const yTop = halfHeight;
 
         // Left side
         addQuadToGroup(group,
-            [xLeft - thickness, yFront, zBottom],
-            [xLeft, yFront, zBottom],
-            [xLeft, yFront, zTop],
-            [xLeft - thickness, yFront, zTop],
+            [xLeft - thickness, yBottom, zFront],
+            [xLeft, yBottom, zFront],
+            [xLeft, yTop, zFront],
+            [xLeft - thickness, yTop, zFront],
             mat
         );
 
         // Right side
         addQuadToGroup(group,
-            [xRight, yFront, zBottom],
-            [xRight + thickness, yFront, zBottom],
-            [xRight + thickness, yFront, zTop],
-            [xRight, yFront, zTop],
+            [xRight, yBottom, zFront],
+            [xRight + thickness, yBottom, zFront],
+            [xRight + thickness, yTop, zFront],
+            [xRight, yTop, zFront],
             mat
         );
 
         // Top
         addQuadToGroup(group,
-            [xLeft - thickness, yFront, zTop],
-            [xRight + thickness, yFront, zTop],
-            [xRight + thickness, yFront, zTop + thickness],
-            [xLeft - thickness, yFront, zTop + thickness],
+            [xLeft - thickness, yTop, zFront],
+            [xRight + thickness, yTop, zFront],
+            [xRight + thickness, yTop + thickness, zFront],
+            [xLeft - thickness, yTop + thickness, zFront],
             mat
         );
 
         // Bottom
         addQuadToGroup(group,
-            [xLeft - thickness, yFront, zBottom - thickness],
-            [xRight + thickness, yFront, zBottom - thickness],
-            [xRight + thickness, yFront, zBottom],
-            [xLeft - thickness, yFront, zBottom],
+            [xLeft - thickness, yBottom - thickness, zFront],
+            [xRight + thickness, yBottom - thickness, zFront],
+            [xRight + thickness, yBottom, zFront],
+            [xLeft - thickness, yBottom, zFront],
             mat
         );
     }
 
     // Left wall windows
-    const xSide = 5;
-    const yCentersSide = [2.25, -2.25];
+    const xLeftWall = 5;
+    const zCenters = [2.25, -2.25];
 
-    for (const yC of yCentersSide) {
-        const yBottom = yC - halfWidth;
-        const yTop = yC + halfWidth;
+    for (const zC of zCenters) {
+        const zLeft = zC - halfWidth;
+        const zRight = zC + halfWidth;
+        const yBottom = -halfHeight;
+        const yTop = halfHeight;
 
         // Right side
         addQuadToGroup(group,
-            [xSide, yBottom, zBottom - thickness],
-            [xSide, yBottom, zBottom],
-            [xSide, yTop, zBottom],
-            [xSide, yTop, zBottom - thickness],
+            [xLeftWall, yBottom, zRight],
+            [xLeftWall, yBottom, zRight + thickness],
+            [xLeftWall, yTop, zRight + thickness],
+            [xLeftWall, yTop, zRight],
             mat
         );
 
         // Left side
         addQuadToGroup(group,
-            [xSide, yBottom, zTop],
-            [xSide, yBottom, zTop + thickness],
-            [xSide, yTop, zTop + thickness],
-            [xSide, yTop, zTop],
+            [xLeftWall, yBottom, zLeft - thickness],
+            [xLeftWall, yBottom, zLeft],
+            [xLeftWall, yTop, zLeft],
+            [xLeftWall, yTop, zLeft - thickness],
             mat
         );
 
         // Top
         addQuadToGroup(group,
-            [xSide, yTop, zBottom - thickness],
-            [xSide, yTop, zTop + thickness],
-            [xSide, yTop + thickness, zTop + thickness],
-            [xSide, yTop + thickness, zBottom - thickness],
+            [xLeftWall, yTop, zLeft - thickness],
+            [xLeftWall, yTop, zRight + thickness],
+            [xLeftWall, yTop + thickness, zRight + thickness],
+            [xLeftWall, yTop + thickness, zLeft - thickness],
             mat
         );
 
         // Bottom
         addQuadToGroup(group,
-            [xSide, yBottom - thickness, zBottom - thickness],
-            [xSide, yBottom - thickness, zTop + thickness],
-            [xSide, yBottom, zTop + thickness],
-            [xSide, yBottom, zBottom - thickness],
+            [xLeftWall, yBottom - thickness, zLeft - thickness],
+            [xLeftWall, yBottom - thickness, zRight + thickness],
+            [xLeftWall, yBottom, zRight + thickness],
+            [xLeftWall, yBottom, zLeft - thickness],
             mat
         );
     }
@@ -566,41 +881,38 @@ function createWindows(x, y, z) {
     const halfWidth = width / 2;
     const halfHeight = height / 2;
 
-    const zCenter = 0;
-    const zBottom = zCenter - halfHeight;
-    const zTop = zCenter + halfHeight;
-
     const group = new THREE.Object3D();
 
     // Front wall windows
-    const yFront = 4.5;
+    const zFront = 4.5;
     const xCentersFront = [3, -3];
 
     for (const xC of xCentersFront) {
         addQuadToGroup(group,
-            [xC - halfWidth, yFront, zBottom],
-            [xC + halfWidth, yFront, zBottom],
-            [xC + halfWidth, yFront, zTop],
-            [xC - halfWidth, yFront, zTop],
+            [xC - halfWidth, -halfHeight, zFront],
+            [xC + halfWidth, -halfHeight, zFront],
+            [xC + halfWidth, +halfHeight, zFront],
+            [xC - halfWidth, +halfHeight, zFront],
             mat
         );
     }
 
     // Left wall windows
     const xSide = 5;
-    const yCentersSide = [2.25, -2.25];
+    const zCentersSide = [2.25, -2.25];
 
-    for (const yC of yCentersSide) {
+    for (const zC of zCentersSide) {
         addQuadToGroup(group,
-            [xSide, yC - halfWidth, zBottom],
-            [xSide, yC + halfWidth, zBottom],
-            [xSide, yC + halfWidth, zTop],
-            [xSide, yC - halfWidth, zTop],
+            [xSide, -halfHeight, zC - halfWidth],
+            [xSide, -halfHeight, zC + halfWidth],
+            [xSide, +halfHeight, zC + halfWidth],
+            [xSide, +halfHeight, zC - halfWidth],
             mat
         );
     }
 
     houseAlentejo.add(group);
+    createFrameWindows(x, y, z);
 }
 
 function createBaseTrim(x, y, z) {
@@ -615,8 +927,8 @@ function createBaseTrim(x, y, z) {
     const halfWidth = houseWidth / 2;
     const halfDepth = houseDepth / 2;
 
-    const yBottom = 0;
-    const yTop = yBottom + trimHeight;
+    const yBottom = -1.5;
+    const yTop = yBottom + 0.5;
 
     const doorHalfWidth = 0.5;
     const frameThickness = 0.25;
@@ -625,18 +937,18 @@ function createBaseTrim(x, y, z) {
     // Base trim of the left side of the front wall
     addQuadToGroup(group,
         [-halfWidth, yBottom, 4.5],
-        [-doorHalfWidth - frameThickness, yBottom, 4.5],
-        [-doorHalfWidth - frameThickness, yTop, 4.5],
+        [-doorHalfWidth, yBottom, 4.5],
+        [-doorHalfWidth, yTop, 4.5],
         [-halfWidth, yTop, 4.5],
         mat
     );
 
     // Base trim of the right side of the front wall
     addQuadToGroup(group,
-        [doorHalfWidth + frameThickness, yBottom, 4.5],
+        [doorHalfWidth, yBottom, 4.5],
         [halfWidth, yBottom, 4.5],
         [halfWidth, yTop, 4.5],
-        [doorHalfWidth + frameThickness, yTop, 4.5],
+        [doorHalfWidth, yTop, 4.5],
         mat
     );
 
@@ -734,7 +1046,54 @@ function createWalls(x, y, z) {
 
 function createCeiling(){
     'use strict';
-    // TO DO Rodrigo: Create ceiling as Object3D
+    const matRoof = materials.get("ceiling");
+    const matWall = materials.get("wall")
+    const group = new THREE.Object3D();
+
+    const xLeft = 5;
+    const xRight = -5;
+    const yBase = 1.5;
+    const yTop = 3;
+    const zFront = 4.5;
+    const zBack = -4.5;
+    const zMid = 0;
+
+    // Right Side
+    addTriangleToGroup(group,
+        [xRight, yBase, zBack],
+        [xRight, yBase, zFront],
+        [xRight, yTop,  zMid],
+        matWall
+    );
+
+    // Left Side
+    addTriangleToGroup(group,
+        [xLeft, yBase, zFront],
+        [xLeft, yBase, zBack],
+        [xLeft, yTop,  zMid],
+        matWall
+    );
+
+    // Front Side
+    addQuadToGroup(group,
+        [xRight, yBase, zFront],
+        [xLeft, yBase, zFront],
+        [xLeft, yTop,  zMid],
+        [xRight, yTop,  zMid],
+        matRoof
+    );
+
+    // Back Side
+    addQuadToGroup(group,
+        [xLeft, yBase, zBack],
+        [xRight, yBase, zBack],
+        [xRight, yTop,  zMid],
+        [xLeft, yTop,  zMid],
+        matRoof
+    );
+
+    group.position.set(0, 0, 0);
+    houseAlentejo.add(group);
 }
 
 function createAlentejoHouse(x, y, z) {
@@ -747,6 +1106,7 @@ function createAlentejoHouse(x, y, z) {
     createBaseTrim(x, y, z);
     createFrameHouse(x, y, z);
     createWalls(x, y, z);
+    createCeiling(x, y, z);
     houseAlentejo.position.set(x, y, z);
     scene.add(houseAlentejo);
 }// #endregion CREATE HOUSE
@@ -769,7 +1129,23 @@ function handleCollisions() {}
 ////////////
 /* UPDATE */
 ////////////
-function update() {}
+function update() {
+    if (ovni) {
+        // constate rotation speed and movement speed
+        ovni.rotation.y += OVNI_ROT_SPEED;
+
+        // horizontal movement
+        let dx = 0, dz = 0;
+        if (ovniMoving.left) dx -= OVNI_SPEED;
+        if (ovniMoving.right) dx += OVNI_SPEED;
+        if (ovniMoving.up) dz -= OVNI_SPEED;
+        if (ovniMoving.down) dz += OVNI_SPEED;
+        ovni.position.x += dx;
+        ovni.position.z += dz;
+    }
+    if (controls) controls.update();
+
+}
 // #endregion
 
 // #region DISPLAY
@@ -792,12 +1168,23 @@ function init() {
     createCamera();
     createRenderer();
     createMaterials();
-    createAlentejoHouse(0, 0, 0);
+
+    renderer.xr.enabled = true;
+    document.body.appendChild(VRButton.createButton(renderer));
+
+    renderer.setAnimationLoop(function () {
+     renderer.render(scene, activeCamera);
+    });
+
+    // OrbitControls
+    controls = new OrbitControls(activeCamera, renderer.domElement);
+
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
     window.addEventListener('resize', onResize);
 
 }
+
 // #endregion
 
 // #region ANIMATION CYCLE
@@ -806,6 +1193,7 @@ function init() {
 /////////////////////
 function render() {
     renderer.render(scene, activeCamera);
+    renderer.shadowMap.enabled = true;
 }
 
 function animate() {
@@ -815,6 +1203,7 @@ function animate() {
     
     requestAnimationFrame(animate);
 }
+
 // #endregion
 
 // #region RESIZE WINDOW
@@ -837,20 +1226,48 @@ function onResize() {
 ///////////////////////
 function onKeyDown(e) {
     'use strict';
-    switch (e.keyCode) {
-        case 49: // key '1'
+    switch (e.key) {
+        case '1':
             generateGroundTexture = true;
-            groundPlane.material.map = generateFloralTexture();
+            const newTexture = generateFloralTexture();
+            newTexture.wrapS = THREE.RepeatWrapping;
+            newTexture.wrapT = THREE.RepeatWrapping;
+            newTexture.repeat.set(25, 30);
+            groundPlane.material.map = newTexture;
             groundPlane.material.needsUpdate = true;
             break;
-        case 50: // key '2'
+
+        case '2': 
             generateSkyTexture = true;
             skyDome.material.map = generateStarryTexture();
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(25, 50); 
+            
             skyDome.material.needsUpdate = true;
             break;
-        case 68: // key 'D' or 'd'
-            globalDirectionalLightOn = !globalDirectionalLightOn;
-            globalDirectionalLight.visible = globalDirectionalLightOn;
+
+        case 'p':
+        case 'P':
+            ovniPointLightsOn = !ovniPointLightsOn;
+            ovniPointLights.forEach(l => l.visible = ovniPointLightsOn);
+            break;
+        case 's':
+        case 'S':
+            ovniSpotLightOn = !ovniSpotLightOn;
+            if (ovniSpotLight) ovniSpotLight.visible = ovniSpotLightOn;
+            break;
+        case 'ArrowLeft':
+            ovniMoving.left = true; 
+            break;
+        case 'ArrowRight':
+            ovniMoving.right = true; 
+            break;
+        case 'ArrowUp':
+            ovniMoving.up = true; 
+            break;
+        case 'ArrowDown':
+            ovniMoving.down = true; 
             break;
     }
 }
@@ -862,12 +1279,24 @@ function onKeyDown(e) {
 ///////////////////////
 function onKeyUp(e) {
     'use strict';
-    switch (e.keyCode) {
-        case 49: // key '1'
+    switch (e.key) {
+        case '1': 
             generateGroundTexture = false;
             break;
-        case 50: // key '2'
+        case '2':
             generateSkyTexture = false;
+            break;
+        case 'ArrowLeft':
+            ovniMoving.left = false; 
+            break;
+        case 'ArrowRight':
+            ovniMoving.right = false; 
+            break;
+        case 'ArrowUp':
+            ovniMoving.up = false; 
+            break;
+        case 'ArrowDown':
+            ovniMoving.down = false; 
             break;
     }
 }
