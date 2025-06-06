@@ -157,7 +157,7 @@ function createScene() {
 function createCamera() {
      const aspect = window.innerWidth / window.innerHeight;
     const pers = new THREE.PerspectiveCamera(75, aspect, 0.1, 500);
-    pers.position.set(0, 50, 50);
+    pers.position.set(0, 5, 30);
     pers.lookAt(0, 10, 10);
 
     cameras = {
