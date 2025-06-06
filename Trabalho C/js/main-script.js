@@ -178,8 +178,8 @@ function createTerrainWithHeightmap() {
 //            createAlentejoHouse(houseX, yGround, houseZ);
 
             createAlentejoHouse(-25, 30, 50);
-//            randomPTrees(15);
-            createTree(0, 30, 0);
+            randomPTrees(15);
+            createTree(15, 50, 70);
         };
 
         // Caso a imagem já esteja carregada (às vezes o `onload` não dispara)
@@ -189,7 +189,6 @@ function createTerrainWithHeightmap() {
     });
 }
 
-// not work well yet
 function getGroundHeightAt(xTarget, zTarget) {
     if (!groundPlane || !groundPlane.geometry || !groundPlane.geometry.attributes.position) {
         console.warn('Ground plane not ready yet.');
@@ -475,6 +474,18 @@ function createCylinderGeometry(radius, height, radialSegments) {
     return geometry;
 }
 
+function createCustomCylinder(radiusBottom, radiusTop, height, radialSegments, material) {
+    const geometry = new THREE.CylinderGeometry(radiusTop, radiusBottom, height, radialSegments);
+    const mesh = new THREE.Mesh(geometry, material);
+    return mesh;
+}
+
+function createEllipsoid(scaleX, scaleY, scaleZ, material) {
+    const geometry = new THREE.SphereGeometry(1, 16, 12);
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.scale.set(scaleX, scaleY, scaleZ); // Scale to create an ellipsoid(width > height and depth)
+    return mesh;
+}
 
 function createFlowers() {
     'use strict';
@@ -503,55 +514,70 @@ function createTerrain() {
 
 // cena mt rapida dps componho
 function randomPTrees(n) {
+    const safeDistanceHouse = 4;
+    const houseX = -25, houseZ = 50;
+
     for (let i = 0; i < n; i++) {
-        const x = (Math.random() - 0.5) * 400; // dentro do terreno (-200 a +200)
-        const z = (Math.random() - 0.5) * 600; // dentro do terreno (-300 a +300)
-        const y = getGroundHeightAt(x, z);
+        let x, z, y;
+        let attempts = 0;
 
+        do {
+            x = Math.random() * 100 - 50;
+            z = Math.random() * 100 - 50 + 30;
+            attempts++;
+        } while (
+            Math.abs(x - houseX) < safeDistanceHouse &&
+            Math.abs(z - houseZ) < safeDistanceHouse &&
+            attempts < 20 // to prevent loop without end
+        )
+        y = getGroundHeightAt(x, z);
         const tree = new THREE.Group();
-        createTree(0, 0, 0, tree); // árvore centrada na origem
-
+        createTree(0, 0, 0, tree);
         tree.position.set(x, y, z);
-        tree.rotation.y = Math.random() * Math.PI * 2; // rotação aleatória
-        const scale = 0.8 + Math.random() * 0.7;
-        tree.scale.set(scale, scale, scale); // escala aleatória
+        tree.rotation.y = Math.random() * Math.PI * 2;
+        const scale = 0.8  + Math.random() * 0.7;
+        tree.scale.set(scale, scale, scale);
 
         scene.add(tree);
     }
 }
 
 function createTree(x = 0, y = 0, z = 0, group = null) {
-    const tree = group || new THREE.Group();
-    const matTrunk = materials.get("treeTrunk");
-    const matLeaves = materials.get("treeLeaves");
 
-    // Tree trunk(slightly incline)
-    const trunkGeometry = createCylinderGeometry(0.5, 6, 16);
-    const trunk = new THREE.Mesh(trunkGeometry, matTrunk);
-    trunk.rotation.z = THREE.MathUtils.degToRad(-10);
-    trunk.position.set(0, 3, 0);
+    const tree = group || new THREE.Group();
+
+    const matTrunk = materials.get("treeTrunk");
+    const matLeaves = materials. get("treeLeaves");
+
+    // === Primary Trunk
+    const trunk = createCustomCylinder(0.8, 0.4, 3, 16, matTrunk);
+    trunk.position.y = 1.5;
+    trunk.rotation.z = THREE.MathUtils.degToRad(10);
     tree.add(trunk);
 
-    // Second branch(opost inclination)
-    const branchGeometry = createCylinderGeometry(0.3, 4, 16);
-    const branch = new THREE.Mesh(branchGeometry, matTrunk);
+    // === Branch
+    const branch = createCustomCylinder(0.25, 0.15, 3, 16, matTrunk);
+    branch.position.set(-0.5, 1.5, 0);
     branch.rotation.z = THREE.MathUtils.degToRad(30);
-    branch.position.set(0.8, 5.5, 0);
     tree.add(branch);
 
-    // Leaves with 1 to 3 elipsoids
-    const numEllipsoids = 1 + Math.floor(Math.random() * 3);
-    for (let i = 0; i < numEllipsoids; i++) {
-        const leafGeo = createSphereGeometry(1.5, 16, 12);
-        const leaf = new THREE.Mesh(leafGeo, matLeaves);
-        leaf.scale.y = 1.2 + Math.random();
-        leaf.position.set(
-            (Math.random() - 0.5) * 2,
-            7 + Math.random() * 2,
-            (Math.random() - 0.5) * 2
-        );
-        tree.add(leaf);
+    // === Leaves
+    // Main Ellipsoid
+    const leaves1 = createEllipsoid(1.6, 0.9, 1.6, matLeaves);
+    leaves1.position.set(0.5, 4, 0);
+    tree.add(leaves1);
+
+    // Second ELlipsoid (Only appears in some trees)
+    if (Math.random() < 0.33) {
+        const leaves2 = createEllipsoid(1.2, 0.7, 0.8, matLeaves);
+        leaves2.position.set(1.2, 3, 0.5);
+        tree.add(leaves2);
     }
+
+    // Ellipsoid on the branch
+    const leaves3 = createEllipsoid(1, 0.5, 1, matLeaves);
+    leaves3.position.set(-1.5, 3, 0);
+    tree.add(leaves3);
 
     if (!group) {
         tree.position.set(x, y, z);
@@ -1059,38 +1085,13 @@ function createCeiling(){
     const zMid = 0;
 
     // Right Side
-    addTriangleToGroup(group,
-        [xRight, yBase, zBack],
-        [xRight, yBase, zFront],
-        [xRight, yTop,  zMid],
-        matWall
-    );
-
+    addTriangleToGroup(group, [xRight, yBase, zBack], [xRight, yBase, zFront], [xRight, yTop,  zMid], matWall);
     // Left Side
-    addTriangleToGroup(group,
-        [xLeft, yBase, zFront],
-        [xLeft, yBase, zBack],
-        [xLeft, yTop,  zMid],
-        matWall
-    );
-
+    addTriangleToGroup(group, [xLeft, yBase, zFront], [xLeft, yBase, zBack], [xLeft, yTop,  zMid], matWall);
     // Front Side
-    addQuadToGroup(group,
-        [xRight, yBase, zFront],
-        [xLeft, yBase, zFront],
-        [xLeft, yTop,  zMid],
-        [xRight, yTop,  zMid],
-        matRoof
-    );
-
+    addQuadToGroup(group, [xRight, yBase, zFront], [xLeft, yBase, zFront], [xLeft, yTop,  zMid], [xRight, yTop,  zMid], matRoof);
     // Back Side
-    addQuadToGroup(group,
-        [xLeft, yBase, zBack],
-        [xRight, yBase, zBack],
-        [xRight, yTop,  zMid],
-        [xLeft, yTop,  zMid],
-        matRoof
-    );
+    addQuadToGroup(group, [xLeft, yBase, zBack], [xRight, yBase, zBack], [xRight, yTop,  zMid], [xLeft, yTop,  zMid], matRoof);
 
     group.position.set(0, 0, 0);
     houseAlentejo.add(group);
@@ -1098,7 +1099,6 @@ function createCeiling(){
 
 function createAlentejoHouse(x, y, z) {
     'use strict';
-
     houseAlentejo = new THREE.Object3D();
 
     createDoor(x, y, z);
